@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  phoneNumber String?   @unique
+  address     Address?  @relation("UserAddress", fields: [addressId], references: [id])
+  addressId   String?   @db.Uuid @unique
+  email       String?   @unique
+  name        String?
+  isGuest     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  carts       Cart[]
+
+  @@map("users")
+}
+
+model Restaurant {
+  id                String     @id @default(uuid()) @db.Uuid
+  name              String
+  address           Address    @relation("RestaurantAddress", fields: [addressId], references: [id])
+  addressId         String     @db.Uuid @unique
+  openingTime       String     // HH:mm
+  closingTime       String     // HH:mm
+  handlingFee       Decimal    @default(0) @db.Decimal(10, 2)
+  packagingCharges  Decimal    @default(0) @db.Decimal(10, 2)
+
+  menuItems         MenuItem[]
+  carts             Cart[]
+}
+
+model Address {
+  id          String   @id @default(uuid()) @db.Uuid
+  line1       String
+  line2       String?
+  landmark    String?
+  city        String
+  state       String?
+  postalCode  String?
+  country     String?
+  latitude    Decimal? @db.Decimal(9, 6)
+  longitude   Decimal? @db.Decimal(9, 6)
+
+  restaurant  Restaurant? @relation("RestaurantAddress")
+  user        User?       @relation("UserAddress")
+}
+
+model MenuItem {
+  id            Int         @id @default(autoincrement())
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId  String      @db.Uuid
+  name          String
+  description   String?
+  price         Decimal     @db.Decimal(10, 2)
+  isAvailable   Boolean     @default(true)
+
+  cartItems     CartItem[]
+}
+
+model Cart {
+  id                 Int         @id @default(autoincrement())
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String      @unique @db.Uuid
+  restaurant         Restaurant? @relation(fields: [restaurantId], references: [id])
+  restaurantId       String?     @db.Uuid
+  items              CartItem[]
+
+  subtotal           Decimal     @default(0) @db.Decimal(10, 2)
+  handlingFee        Decimal     @default(0) @db.Decimal(10, 2)
+  packagingCharges   Decimal     @default(0) @db.Decimal(10, 2)
+  total              Decimal     @default(0) @db.Decimal(10, 2)
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+}
+
+model CartItem {
+  id          Int      @id @default(autoincrement())
+  cart        Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId      Int
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId  Int
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+
+  @@unique([cartId, menuItemId])
+}

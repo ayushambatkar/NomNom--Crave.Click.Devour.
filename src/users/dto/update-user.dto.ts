@@ -1,0 +1,20 @@
+import { IsEmail, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { AddressDto } from 'src/common/dto/address.dto';
+
+export class UpdateUserDto {
+
+	@ValidateNested()
+	@Type(() => AddressDto)
+	@IsOptional()
+	addressObj?: AddressDto;
+
+	@IsString()
+	@IsOptional()
+	@IsEmail()
+	email?: string;
+
+	@IsString()
+	@IsOptional()
+	name?: string;
+}

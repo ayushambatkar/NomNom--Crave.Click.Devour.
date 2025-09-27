@@ -1,0 +1,171 @@
+/*
+  Seed script: creates sample restaurants (with addresses + coords within 0–10km),
+  menu items, and users (some with addresses) for local testing.
+*/
+import { PrismaClient } from '../generated/prisma';
+
+const prisma = new PrismaClient();
+
+// Default center: Bengaluru. Override with env SEED_CENTER_LAT/LNG.
+const CENTER_LAT = parseFloat(process.env.SEED_CENTER_LAT || '12.9716');
+const CENTER_LNG = parseFloat(process.env.SEED_CENTER_LNG || '77.5946');
+const MAX_RADIUS_KM = parseFloat(process.env.SEED_MAX_RADIUS_KM || '10');
+
+// Helpers
+function randomInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomFloat(min: number, max: number, decimals = 2) {
+  const n = Math.random() * (max - min) + min;
+  return parseFloat(n.toFixed(decimals));
+}
+
+// Uniform points within a circle of radiusKm around a lat/lng
+function randomPointWithinKm(lat: number, lng: number, radiusKm: number) {
+  const u = Math.random();
+  const v = Math.random();
+  const w = radiusKm * Math.sqrt(u);
+  const t = 2 * Math.PI * v;
+  const dx = w * Math.cos(t);
+  const dy = w * Math.sin(t);
+
+  const newLat = lat + (dy / 111); // 1 deg lat ~ 111 km
+  const newLng = lng + (dx / (111 * Math.cos((lat * Math.PI) / 180)));
+  return { latitude: parseFloat(newLat.toFixed(6)), longitude: parseFloat(newLng.toFixed(6)) };
+}
+
+const RESTAURANT_NAMES = [
+  'Shimla Restaurant',
+  'Spice Route',
+  'Curry Leaf',
+  'Urban Tadka',
+  'Royal Biriyani',
+  'Tandoor Tales',
+  'Masala Magic',
+  'Coastal Catch',
+  'Bombay Bistro',
+  'Punjabi Dhaba',
+  'Veggie Delight',
+  'Saffron Spoon',
+  'Naan & Beyond',
+  'Street Eats',
+  'Mysore Morsels',
+  'Ghar Ka Khana',
+  'Dosa Corner',
+  'Kebab Kitchen',
+  'Tea & Treats',
+  'Quick Bites'
+];
+
+const MENU_ITEMS = [
+  { name: 'Veg Thali', min: 120, max: 220 },
+  { name: 'Chicken Biryani', min: 180, max: 320 },
+  { name: 'Paneer Butter Masala', min: 160, max: 260 },
+  { name: 'Masala Dosa', min: 80, max: 140 },
+  { name: 'Tandoori Roti (2pc)', min: 40, max: 80 },
+  { name: 'Fish Fry', min: 220, max: 380 },
+];
+
+async function createRestaurants(count = 18) {
+  const selected = RESTAURANT_NAMES.slice(0, count);
+  const created: any[] = [];
+  for (const name of selected) {
+    const { latitude, longitude } = randomPointWithinKm(CENTER_LAT, CENTER_LNG, Math.random() * MAX_RADIUS_KM);
+    const handlingFee = randomFloat(10, 35, 2);
+    const packagingCharges = randomFloat(5, 20, 2);
+    const opening = `${randomInt(8, 11)}:${randomInt(0, 59).toString().padStart(2, '0')}`;
+    const closing = `${randomInt(20, 23)}:${randomInt(0, 59).toString().padStart(2, '0')}`;
+
+    const restaurant = await prisma.restaurant.create({
+      data: {
+        name,
+        openingTime: opening,
+        closingTime: closing,
+        handlingFee,
+        packagingCharges,
+        address: {
+          create: {
+            line1: `${randomInt(1, 200)} Main Street`,
+            city: 'Bengaluru',
+            landmark: 'Near Park',
+            latitude,
+            longitude,
+          },
+        },
+      },
+      include: { address: true },
+    });
+
+    // Add 3-5 menu items
+    const itemsToCreate = randomInt(3, 5);
+    for (let i = 0; i < itemsToCreate; i++) {
+      const tpl = MENU_ITEMS[randomInt(0, MENU_ITEMS.length - 1)];
+      await prisma.menuItem.create({
+        data: {
+          restaurantId: restaurant.id,
+          name: tpl.name,
+          price: randomFloat(tpl.min, tpl.max, 2),
+          isAvailable: Math.random() > 0.1,
+          description: 'Tasty and freshly prepared',
+        },
+      });
+    }
+
+    created.push(restaurant);
+  }
+  return created;
+}
+
+async function createUsers(count = 12) {
+  const created: any[] = [];
+  for (let i = 0; i < count; i++) {
+    const withAddress = Math.random() > 0.2; // 80% users have address
+    const addr = withAddress ? randomPointWithinKm(CENTER_LAT, CENTER_LNG, Math.random() * MAX_RADIUS_KM) : null;
+    const user = await prisma.user.create({
+      data: {
+        phoneNumber: `+1555${(100000 + i).toString()}`,
+        name: `User ${i + 1}`,
+        isGuest: false,
+        ...(withAddress && {
+          address: {
+            create: {
+              line1: `${randomInt(1, 300)} Cross Road`,
+              city: 'Bengaluru',
+              landmark: 'Near Market',
+              latitude: addr!.latitude,
+              longitude: addr!.longitude,
+            },
+          },
+        }),
+      },
+      include: { address: true },
+    });
+    created.push(user);
+  }
+  return created;
+}
+
+async function main() {
+  console.log('Seeding data...');
+  // Optional: clear existing (comment out in shared envs)
+  await prisma.cartItem.deleteMany();
+  await prisma.cart.deleteMany();
+  await prisma.menuItem.deleteMany();
+  await prisma.restaurant.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.address.deleteMany();
+
+  const restaurants = await createRestaurants(18);
+  const users = await createUsers(15);
+  console.log(`Seeded ${restaurants.length} restaurants and ${users.length} users.`);
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
