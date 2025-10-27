@@ -2,7 +2,7 @@
   Seed script: creates sample restaurants (with addresses + coords within 0–10km),
   menu items, and users (some with addresses) for local testing.
 */
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -21,18 +21,30 @@ function randomFloat(min: number, max: number, decimals = 2) {
   return parseFloat(n.toFixed(decimals));
 }
 
-// Uniform points within a circle of radiusKm around a lat/lng
-function randomPointWithinKm(lat: number, lng: number, radiusKm: number) {
-  const u = Math.random();
-  const v = Math.random();
-  const w = radiusKm * Math.sqrt(u);
-  const t = 2 * Math.PI * v;
-  const dx = w * Math.cos(t);
-  const dy = w * Math.sin(t);
+// Uniform random point within a circle (radiusKm) around a center lat/lng
+function randomPointWithinKm(centerLatDeg: number, centerLngDeg: number, radiusKm: number) {
+  // Sample uniformly in a disk: r = R * sqrt(u), theta = 2πv
+  const randomRadiusUnit = Math.random();
+  const randomAngleUnit = Math.random();
 
-  const newLat = lat + (dy / 111); // 1 deg lat ~ 111 km
-  const newLng = lng + (dx / (111 * Math.cos((lat * Math.PI) / 180)));
-  return { latitude: parseFloat(newLat.toFixed(6)), longitude: parseFloat(newLng.toFixed(6)) };
+  const distanceFromCenterKm = radiusKm * Math.sqrt(randomRadiusUnit);
+  const angleRad = 2 * Math.PI * randomAngleUnit;
+
+  // Local tangent-plane offsets in kilometers
+  const offsetEastKm = distanceFromCenterKm * Math.cos(angleRad);
+  const offsetNorthKm = distanceFromCenterKm * Math.sin(angleRad);
+
+  // Convert km offsets to degrees
+  const kmPerDegLat = 111;
+  const kmPerDegLng = 111 * Math.cos((centerLatDeg * Math.PI) / 180);
+
+  const newLatDeg = centerLatDeg + offsetNorthKm / kmPerDegLat;
+  const newLngDeg = centerLngDeg + offsetEastKm / kmPerDegLng;
+
+  return {
+    latitude: parseFloat(newLatDeg.toFixed(6)),
+    longitude: parseFloat(newLngDeg.toFixed(6)),
+  };
 }
 
 const RESTAURANT_NAMES = [
@@ -77,7 +89,8 @@ async function createRestaurants(count = 18) {
     const opening = `${randomInt(8, 11)}:${randomInt(0, 59).toString().padStart(2, '0')}`;
     const closing = `${randomInt(20, 23)}:${randomInt(0, 59).toString().padStart(2, '0')}`;
 
-    const restaurant = await prisma.restaurant.create({
+    const p= prisma;
+    const restaurant = await p.restaurant.create({
       data: {
         name,
         openingTime: opening,
@@ -101,7 +114,7 @@ async function createRestaurants(count = 18) {
     const itemsToCreate = randomInt(3, 5);
     for (let i = 0; i < itemsToCreate; i++) {
       const tpl = MENU_ITEMS[randomInt(0, MENU_ITEMS.length - 1)];
-      await prisma.menuItem.create({
+      await p.menuItem.create({
         data: {
           restaurantId: restaurant.id,
           name: tpl.name,
@@ -122,7 +135,8 @@ async function createUsers(count = 12) {
   for (let i = 0; i < count; i++) {
     const withAddress = Math.random() > 0.2; // 80% users have address
     const addr = withAddress ? randomPointWithinKm(CENTER_LAT, CENTER_LNG, Math.random() * MAX_RADIUS_KM) : null;
-    const user = await prisma.user.create({
+    const p2= prisma;
+    const user = await p2.user.create({
       data: {
         phoneNumber: `+1555${(100000 + i).toString()}`,
         name: `User ${i + 1}`,
@@ -149,12 +163,13 @@ async function createUsers(count = 12) {
 async function main() {
   console.log('Seeding data...');
   // Optional: clear existing (comment out in shared envs)
-  await prisma.cartItem.deleteMany();
-  await prisma.cart.deleteMany();
-  await prisma.menuItem.deleteMany();
-  await prisma.restaurant.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.address.deleteMany();
+  const p= prisma;
+  await p.cartItem.deleteMany();
+  await p.cart.deleteMany();
+  await p.menuItem.deleteMany();
+  await p.restaurant.deleteMany();
+  await p.user.deleteMany();
+  await p.address.deleteMany();
 
   const restaurants = await createRestaurants(18);
   const users = await createUsers(15);

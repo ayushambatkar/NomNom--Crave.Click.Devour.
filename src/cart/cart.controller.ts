@@ -1,11 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { CartService } from './cart.service';
 import { JwtGuard } from 'src/auth/guard/jwt.guard';
 import { UseGuards } from '@nestjs/common';
 import { GetUser } from 'src/auth/decorator/get-user.decorator';
+import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
 
 class AddToCartDto {
-  menuItemId: number;
+  menuItemId: string; // UUID
   quantity: number;
 }
 
@@ -20,8 +29,15 @@ export class CartController {
   }
 
   @Post('add')
-  add(@GetUser('id') userId: string, @Body() dto: AddToCartDto) {
-    return this.service.addItem(userId, dto.menuItemId, dto.quantity ?? 1);
+  add(
+    @GetUser('id') userId: string,
+    @SnakeBody(AddToCartDto) dto: AddToCartDto,
+  ) {
+    return this.service.addItem(
+      userId,
+      dto.menuItemId,
+      dto.quantity ?? 1,
+    );
   }
 
   @Post('clear')
@@ -30,7 +46,14 @@ export class CartController {
   }
 
   @Delete('item/:menuItemId')
-  remove(@GetUser('id') userId: string, @Param('menuItemId') menuItemId: string) {
-    return this.service.removeItem(userId, +menuItemId);
+  remove(
+    @GetUser('id') userId: string,
+    @Param('menuItemId', new ParseUUIDPipe())
+    menuItemId: string,
+  ) {
+    return this.service.removeItem(
+      userId,
+      menuItemId,
+    );
   }
 }

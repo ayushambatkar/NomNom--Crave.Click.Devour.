@@ -15,9 +15,9 @@ import { CartModule } from './cart/cart.module';
     PrismaModule,
     RestaurantsModule,
     CartModule,
-    ConfigModule.forRoot({isGlobal: true}),
+    ConfigModule.forRoot({ isGlobal: true }),
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

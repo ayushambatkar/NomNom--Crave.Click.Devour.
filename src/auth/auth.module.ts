@@ -16,6 +16,10 @@ import { CartModule } from 'src/cart/cart.module';
     CartModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UsersService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    UsersService,
+  ],
 })
-export class AuthModule { }
+export class AuthModule {}

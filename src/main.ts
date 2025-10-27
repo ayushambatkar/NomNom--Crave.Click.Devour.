@@ -10,20 +10,31 @@ import { VersioningType } from '@nestjs/common';
 
 dotenv.config();
 
-
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // First convert snake_case inputs to camelCase, then validate DTOs
-  app.useGlobalPipes(new SnakeToCamelPipe(), new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(
+    new SnakeToCamelPipe(),
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
   // Convert responses to snake_case JSON
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)), new SnakeCaseInterceptor());
-  app.setGlobalPrefix('api')
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(
+      app.get(Reflector),
+    ),
+    new SnakeCaseInterceptor(),
+  );
+  app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
-  })
+  });
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`App running on http://localhost:${process.env.PORT ?? 3000}`);
+  console.log(
+    `App running on http://localhost:${process.env.PORT ?? 3000}`,
+  );
 }
 bootstrap();

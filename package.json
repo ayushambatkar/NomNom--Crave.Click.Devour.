@@ -8,7 +8,7 @@
   "scripts": {
     "db:seed": "node -r ts-node/register prisma/seed.ts",
     "prisma:dev:deploy": "prisma migrate deploy",
-    "db:dev:rm": "docker compose rm dev-db -s -f -v",
+    "db:dev:rm": "docker compose rm dev-db -s -f",
     "db:dev:up": "docker compose up -d dev-db",
     "db:dev:down": "docker compose down dev-db",
     "db:dev:restart": "npm run db:dev:rm && npm run db:dev:up && node -e \"setTimeout(() => {}, 1000)\" && npm run prisma:dev:deploy",

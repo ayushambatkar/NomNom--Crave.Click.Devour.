@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   dev-db:
     image: postgres:13
@@ -8,5 +9,13 @@ services:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: devpassword
       POSTGRES_DB: devdb
+    volumes:
+      - devdb_data:/var/lib/postgresql/data
+    networks:
+      - dev-network
+
 networks:
   dev-network:
+
+volumes:
+  devdb_data:
