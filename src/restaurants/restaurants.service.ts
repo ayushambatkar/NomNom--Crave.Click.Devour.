@@ -1,18 +1,20 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import type { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreateMenuItemDto,
   CreateRestaurantDto,
   UpdateRestaurantDto,
-} from './types';
+} from './dto';
 
 @Injectable()
 export class RestaurantsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(dto: CreateRestaurantDto) {
     const p = this.prisma;
@@ -39,11 +41,41 @@ export class RestaurantsService {
     });
   }
 
-  async list() {
-    const p = this.prisma;
-    return await p.restaurant.findMany({
-      include: { address: true },
-    });
+  async list(user: User) {
+    try {
+      if (user.addressId === null) {
+        throw new BadRequestException(
+          'Location required to fetch restaurants',
+        );
+      }
+      const address =
+        await this.prisma.address.findUnique({
+          where: {
+            id: user.addressId ?? undefined,
+          },
+        });
+      if (
+        !address?.latitude ||
+        !address?.longitude
+      ) {
+        throw new BadRequestException(
+          'Valid location required to fetch restaurants',
+        );
+      }
+      const lat =
+        Number(address?.latitude) ?? null;
+      const lng =
+        Number(address?.longitude) ?? null;
+      const restaurants = await this.nearby(
+        lat,
+        lng,
+        30,
+        { includeAddressDetails: false }
+      );
+      return restaurants;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async get(id: string) {
@@ -126,6 +158,7 @@ export class RestaurantsService {
     lat: number,
     lng: number,
     radiusKm = 5,
+    { includeAddressDetails: includeDetails = true }: { includeAddressDetails?: boolean } = {}
   ) {
     const prisma = this.prisma;
     // Haversine in SQL (PostgreSQL): distance in km
@@ -193,7 +226,7 @@ export class RestaurantsService {
       closingTime: row.closing_time,
       handlingFee: row.handling_fee,
       packagingCharges: row.packaging_charges,
-      address: {
+      address: includeDetails ? {
         id: row.address_id,
         line1: row.address_line1,
         line2: row.address_line2,
@@ -204,6 +237,9 @@ export class RestaurantsService {
         country: row.address_country,
         latitude: row.address_latitude,
         longitude: row.address_longitude,
+      } : {
+        id: row.address_id,
+        line1: row.address_line1,
       },
       distanceKm: Number(row.distance_km),
     }));

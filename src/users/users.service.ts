@@ -27,10 +27,10 @@ export class UsersService {
       name: dto.name,
       email: dto.email,
     };
-    if (dto.addressObj) {
+    if (dto.address) {
       data.address = existing?.addressId
-        ? { update: dto.addressObj }
-        : { create: dto.addressObj };
+        ? { update: dto.address }
+        : { create: dto.address };
     }
     return p.user.update({
       where: { id: userId },

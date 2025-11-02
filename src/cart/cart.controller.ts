@@ -12,11 +12,7 @@ import { JwtGuard } from 'src/auth/guard/jwt.guard';
 import { UseGuards } from '@nestjs/common';
 import { GetUser } from 'src/auth/decorator/get-user.decorator';
 import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
-
-class AddToCartDto {
-  menuItemId: string; // UUID
-  quantity: number;
-}
+import { AddToCartDto } from './dto/add_to_cart.dto';
 
 @UseGuards(JwtGuard)
 @Controller('cart')

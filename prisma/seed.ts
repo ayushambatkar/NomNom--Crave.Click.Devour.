@@ -2,7 +2,8 @@
   Seed script: creates sample restaurants (with addresses + coords within 0–10km),
   menu items, and users (some with addresses) for local testing.
 */
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+import { AddressDto } from 'src/common/dto/address.dto';
 
 const prisma = new PrismaClient();
 
@@ -103,7 +104,7 @@ async function createRestaurants(count = 18) {
             city: 'Bengaluru',
             landmark: 'Near Park',
             latitude,
-            longitude,
+            longitude, 
           },
         },
       },
@@ -138,7 +139,7 @@ async function createUsers(count = 12) {
     const p2= prisma;
     const user = await p2.user.create({
       data: {
-        phoneNumber: `+1555${(100000 + i).toString()}`,
+        phoneNumber: `+918776${(100000 + i).toString()}`,
         name: `User ${i + 1}`,
         isGuest: false,
         ...(withAddress && {

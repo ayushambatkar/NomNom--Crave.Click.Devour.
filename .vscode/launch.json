@@ -5,18 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
+            "type": "node-terminal",
+            "name": "Dev",
             "request": "launch",
-            "name": "Run ts-node",
-            "runtimeExecutable": "ts-node",
-            "cwd": "${workspaceFolder}",
-            "args": []
+            "command": "npm run start:dev",
+            "cwd": "${workspaceFolder}"
         },
         {
             "type": "node-terminal",
-            "name": "Run Script: start:dev",
+            "name": "Start DB server",
             "request": "launch",
-            "command": "npm run start:dev",
+            "command": "npm run db:dev:restart",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "name": "Format Workspace",
+            "request": "launch",
+            "command": "npm run format",
             "cwd": "${workspaceFolder}"
         }
     ]

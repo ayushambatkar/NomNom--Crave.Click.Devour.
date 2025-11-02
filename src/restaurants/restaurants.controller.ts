@@ -7,20 +7,27 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import type { User } from '@prisma/client';
 import { RestaurantsService } from './restaurants.service';
 import {
   CreateRestaurantDto,
   CreateMenuItemDto,
   NearbyQueryDto,
   UpdateRestaurantDto,
-} from './types';
+} from './dto';
 import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
+import { JwtGuard } from 'src/auth/guard';
+import { GetUser } from 'src/auth/decorator/get-user.decorator';
+import { PrismaService } from 'src/prisma/prisma.service';
 
+@UseGuards(JwtGuard)
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(
     private service: RestaurantsService,
+    private prisma: PrismaService,
   ) {}
 
   @Post()
@@ -32,8 +39,8 @@ export class RestaurantsController {
   }
 
   @Get()
-  list() {
-    return this.service.list();
+  list(@GetUser() user: User) {
+    return this.service.list(user);
   }
 
   // Define static route before dynamic ':id' to avoid matching 'nearby' as an id

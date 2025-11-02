@@ -1,4 +1,7 @@
 import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,7 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class CartService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async getCart(userId: string) {
     const prisma = this.prisma;
@@ -35,23 +38,33 @@ export class CartService {
     quantity = 1,
   ) {
     try {
-
-
       const cart = await this.ensureCart(userId);
       const prisma = this.prisma;
       const menuItem =
         await prisma.menuItem.findUnique({
           where: { id: menuItemId },
         });
+
+      // check for menu item existence
       if (!menuItem)
         throw new NotFoundException(
           'MenuItem not found',
         );
+      // Validate quantity
+      if (quantity !== null && quantity < 1) {
+        throw new BadRequestException(
+          'Quantity must be at least 1',
+        );
+      }
 
+      /**
+       * Cart restaurant consistency check
+       */
       // If cart has different restaurant, reset
       if (
         cart.restaurantId &&
-        cart.restaurantId !== menuItem.restaurantId
+        cart.restaurantId !==
+          menuItem.restaurantId
       ) {
         await prisma.cartItem.deleteMany({
           where: { cartId: cart.id },
@@ -63,6 +76,8 @@ export class CartService {
           },
         });
       } else if (!cart.restaurantId) {
+        // if no restaurant assigned yet
+        // assign the restaurant of the first added item
         await prisma.cart.update({
           where: { id: cart.id },
           data: {
@@ -70,7 +85,9 @@ export class CartService {
           },
         });
       }
-
+      /**
+       * Add or update item in cart
+       */
       const existing =
         await prisma.cartItem.findUnique({
           where: {
@@ -84,7 +101,8 @@ export class CartService {
         await prisma.cartItem.update({
           where: { id: existing.id },
           data: {
-            quantity: existing.quantity + quantity,
+            quantity:
+              existing.quantity + quantity,
           },
         });
       } else {
@@ -103,10 +121,7 @@ export class CartService {
         menuItem.restaurantId,
       );
     } catch (error) {
-      return {
-        error: error,
-        stacktrace: error.stack,
-      }
+      throw error;
     }
   }
 
@@ -137,14 +152,11 @@ export class CartService {
 
   private async ensureCart(userId: string) {
     const prisma = this.prisma;
-    let cart = await prisma.cart.findUnique({
+    let cart = await prisma.cart.upsert({
       where: { userId },
+      update: {},
+      create: { userId },
     });
-    if (!cart) {
-      cart = await prisma.cart.create({
-        data: { userId },
-      });
-    }
     return cart;
   }
 

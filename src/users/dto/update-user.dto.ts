@@ -11,7 +11,7 @@ export class UpdateUserDto {
   @ValidateNested()
   @Type(() => AddressDto)
   @IsOptional()
-  addressObj?: AddressDto;
+  address?: AddressDto;
 
   @IsString()
   @IsOptional()

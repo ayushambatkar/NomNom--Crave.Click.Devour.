@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -13,12 +14,17 @@ import {
   VerifyOtpDto,
 } from './dto';
 import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
+import { GetUser } from './decorator/get-user.decorator';
+import { JwtGuard } from './guard';
+import type { User } from 'generated/prisma/client';
+
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard)
   @Post('request-otp')
   requestOtp(
     @SnakeBody(RequestOtpDto) dto: RequestOtpDto,
@@ -30,6 +36,7 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('resend-otp')
+  @UseGuards(JwtGuard)
   resendOtp(
     @SnakeBody(RequestOtpDto) dto: RequestOtpDto,
   ) {
@@ -41,12 +48,15 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('verify-otp')
+  @UseGuards(JwtGuard)
   verifyOtp(
+    @GetUser() user: User,
     @SnakeBody(VerifyOtpDto) dto: VerifyOtpDto,
   ) {
     return this.authService.verifyOtp(
       dto.phoneNumber,
       dto.otp,
+      user,
     );
   }
 

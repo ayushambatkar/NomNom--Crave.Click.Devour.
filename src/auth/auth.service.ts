@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  NotImplementedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -9,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from 'src/users/users.service';
 import { CartService } from 'src/cart/cart.service';
+import { User } from 'generated/prisma/wasm';
 
 @Injectable({})
 export class AuthService {
@@ -36,28 +38,29 @@ export class AuthService {
   async verifyOtp(
     phoneNumber: string,
     otp: string,
+    user: User,
   ) {
+    throw new NotImplementedException();
     if (otp !== this.HARD_CODED_OTP) {
       throw new ForbiddenException('Invalid OTP');
     }
 
-    // find or create user by phone via UsersService
-    let user =
-      await this.userService.findByPhone(
-        phoneNumber,
+    // if user is guest, upgrade to registered user
+    if (user.isGuest) {
+      user = await this.userService.upgradeGuestToRegistered(
+        user.id,
       );
-    if (!user) {
-      user =
-        await this.userService.createPhoneUser(
-          phoneNumber,
-        );
-    } else if (user.isGuest) {
-      // upgrade guest to registered phone user
-      user =
-        await this.userService.upgradeGuestToRegistered(
-          user.id,
-        );
     }
+
+    // else verify otp 
+    else {
+      const existingUser = await this.userService.findByPhone(user.phoneNumber!);
+      
+    }
+
+    // sign tokens and return
+
+  
 
     // ensure a cart exists for the user via CartService
     await this.cartService.ensureCartForUser(
