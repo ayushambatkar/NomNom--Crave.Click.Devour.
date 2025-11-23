@@ -10,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { GuestCartService } from './guest-cart.service';
 import { CartRepository } from './cart.repository';
 import { CartEntity } from './entities';
+import { computeCartTotals } from './util/cart-totals.util';
 import { GuestUserService } from 'src/users/guest-user.service';
 
 @Injectable()
@@ -180,51 +181,28 @@ export class CartService {
   ) {
     const items =
       await this.cartRepo.listCartItems(cartId);
-    const subtotal = items.reduce(
-      (sum, it) =>
-        sum + Number(it.unitPrice) * it.quantity,
-      0,
-    );
-
-    let handlingFee = 0;
-    let packagingCharges = 0;
-    let deliveryCharges = 0;
-    let taxAmount = 0;
-    if (restaurantId) {
-      const r =
-        await this.cartRepo.findRestaurant(
+    const restaurant = restaurantId
+      ? await this.cartRepo.findRestaurant(
           restaurantId,
-        );
-      handlingFee = Number(r?.handlingFee ?? 0);
-      packagingCharges = Number(
-        r?.packagingCharges ?? 0,
-      );
-      // Simple policy: flat delivery fee and percentage tax on subtotal
-      const DELIVERY_FLAT_FEE = Number(
-        process.env.DELIVERY_FLAT_FEE ?? 20,
-      );
-      const TAX_RATE = Number(
-        process.env.TAX_RATE ?? 0.05,
-      ); // 5%
-      deliveryCharges = DELIVERY_FLAT_FEE;
-      taxAmount = Number(
-        (subtotal * TAX_RATE).toFixed(2),
-      );
-    }
-    const total =
-      subtotal +
-      handlingFee +
-      packagingCharges +
-      deliveryCharges +
-      taxAmount;
-    await this.cartRepo.updateTotals(cartId, {
-      subtotal,
-      handlingFee,
-      packagingCharges,
-      deliveryCharges,
-      taxAmount,
-      total,
+        )
+      : null;
+    const totals = computeCartTotals({
+      items: items.map((it) => ({
+        unitPrice: it.unitPrice,
+        quantity: it.quantity,
+      })),
+      restaurant: restaurant
+        ? {
+            handlingFee: restaurant.handlingFee,
+            packagingCharges:
+              restaurant.packagingCharges,
+          }
+        : null,
     });
+    await this.cartRepo.updateTotals(
+      cartId,
+      totals,
+    );
     const updated = await this.prisma.cart.findUnique({
       where: { id: cartId },
       include: {

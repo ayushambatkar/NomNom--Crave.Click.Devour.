@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GuestCartRepository } from './guest-cart.repository';
 import { GuestCartEntity } from './entities';
+import { computeCartTotals } from './util/cart-totals.util';
 import { GuestCartDto } from './dto/guest_cart.dto';
 import { randomUUID } from 'crypto';
 
@@ -44,7 +44,7 @@ export class GuestCartService {
         unitPrice,
       });
     }
-    await this.computeGuestTotals(cart);
+    await this.applyTotals(cart);
     await this.guestCartRepo.save(userId, cart);
     return this.buildGuestCartView(userId);
   }
@@ -63,52 +63,28 @@ export class GuestCartService {
     if (cart.items.length === 0) {
       cart.restaurantId = null;
     }
-    await this.computeGuestTotals(cart);
+    await this.applyTotals(cart);
     await this.guestCartRepo.save(userId, cart);
     return this.buildGuestCartView(userId);
   }
 
-  private async computeGuestTotals(cart: any) {
-    const subtotal = cart.items.reduce(
-      (sum: number, it: any) =>
-        sum + Number(it.unitPrice) * it.quantity,
-      0,
-    );
-    cart.subtotal = subtotal;
-    let handlingFee = 0;
-    let packagingCharges = 0;
-    let deliveryCharges = 0;
-    let taxAmount = 0;
-    if (cart.restaurantId) {
-      const r =
-        await this.prisma.restaurant.findUnique({
+  private async applyTotals(cart: any) {
+    const restaurant = cart.restaurantId
+      ? await this.prisma.restaurant.findUnique({
           where: { id: cart.restaurantId },
-        });
-      handlingFee = Number(r?.handlingFee ?? 0);
-      packagingCharges = Number(
-        r?.packagingCharges ?? 0,
-      );
-      const DELIVERY_FLAT_FEE = Number(
-        process.env.DELIVERY_FLAT_FEE ?? 20,
-      );
-      const TAX_RATE = Number(
-        process.env.TAX_RATE ?? 0.05,
-      );
-      deliveryCharges = DELIVERY_FLAT_FEE;
-      taxAmount = Number(
-        (subtotal * TAX_RATE).toFixed(2),
-      );
-    }
-    cart.handlingFee = handlingFee;
-    cart.packagingCharges = packagingCharges;
-    cart.deliveryCharges = deliveryCharges;
-    cart.taxAmount = taxAmount;
-    cart.total =
-      subtotal +
-      handlingFee +
-      packagingCharges +
-      deliveryCharges +
-      taxAmount;
+        })
+      : null;
+    const totals = computeCartTotals({
+      items: cart.items,
+      restaurant: restaurant
+        ? {
+            handlingFee: restaurant.handlingFee,
+            packagingCharges:
+              restaurant.packagingCharges,
+          }
+        : null,
+    });
+    Object.assign(cart, totals);
   }
 
   async getGuestCartView(userId: string) {
@@ -212,12 +188,6 @@ export class GuestCartService {
     // });
     // remove guest cart
     await this.guestCartRepo.delete(guestUserId);
-  }
-
-  // Legacy compatibility placeholder (was referenced earlier when migrating totals in CartService)
-  // Retained to silence any stale type expectations; actual logic now inline above.
-  private async updateTotals(): Promise<void> {
-    return; // no-op
   }
 
   private async buildGuestCartView(userId: string) {
