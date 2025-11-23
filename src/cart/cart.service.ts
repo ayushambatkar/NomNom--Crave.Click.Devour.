@@ -10,7 +10,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { GuestCartService } from './guest-cart.service';
 import { CartRepository } from './cart.repository';
 import { CartEntity } from './entities';
-import { computeCartTotals } from './util/cart-totals.util';
+import {
+  computeCartTotals,
+  haversineDistanceKm,
+} from './util/cart-totals.util';
 import { GuestUserService } from 'src/users/guest-user.service';
 
 @Injectable()
@@ -24,11 +27,16 @@ export class CartService {
 
   async getCart(userId: string) {
     if (await this.isGuest(userId)) {
-      return this.guestCart.getGuestCartView(userId);
+      return this.guestCart.getGuestCartView(
+        userId,
+      );
     }
-    const cart = await this.cartRepo.findByUserId(userId);
+    const cart =
+      await this.cartRepo.findByUserId(userId);
     return cart
-      ? CartEntity.fromPrisma(cart as any).toView()
+      ? CartEntity.fromPrisma(
+          cart as any,
+        ).toView()
       : null;
   }
 
@@ -38,7 +46,11 @@ export class CartService {
     }
     const cart = await this.ensureCart(userId);
     await this.cartRepo.deleteCartItems(cart.id);
-    return this.updateTotals(cart.id, null);
+    return this.updateTotals(
+      cart.id,
+      userId,
+      null,
+    );
   }
 
   async addItem(
@@ -121,6 +133,7 @@ export class CartService {
 
       return this.updateTotals(
         cart.id,
+        userId,
         menuItem.restaurantId,
       );
     } catch (error) {
@@ -150,6 +163,7 @@ export class CartService {
     });
     return this.updateTotals(
       cart.id,
+      userId,
       cart.restaurantId ?? null,
     );
   }
@@ -177,15 +191,36 @@ export class CartService {
 
   private async updateTotals(
     cartId: string,
+    userId: string,
     restaurantId: string | null,
   ) {
     const items =
       await this.cartRepo.listCartItems(cartId);
     const restaurant = restaurantId
-      ? await this.cartRepo.findRestaurant(
-          restaurantId,
-        )
+      ? await this.prisma.restaurant.findUnique({
+          where: { id: restaurantId },
+          include: { address: true },
+        })
       : null;
+    const user =
+      await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { address: true },
+      });
+    let distanceKm: number | null = null;
+    if (
+      restaurant?.address?.latitude &&
+      restaurant?.address?.longitude &&
+      user?.address?.latitude &&
+      user?.address?.longitude
+    ) {
+      distanceKm = haversineDistanceKm(
+        Number(user.address.latitude),
+        Number(user.address.longitude),
+        Number(restaurant.address.latitude),
+        Number(restaurant.address.longitude),
+      );
+    }
     const totals = computeCartTotals({
       items: items.map((it) => ({
         unitPrice: it.unitPrice,
@@ -198,20 +233,24 @@ export class CartService {
               restaurant.packagingCharges,
           }
         : null,
+      distanceKm,
     });
     await this.cartRepo.updateTotals(
       cartId,
       totals,
     );
-    const updated = await this.prisma.cart.findUnique({
-      where: { id: cartId },
-      include: {
-        items: { include: { menuItem: true } },
-        restaurant: true,
-      },
-    });
+    const updated =
+      await this.prisma.cart.findUnique({
+        where: { id: cartId },
+        include: {
+          items: { include: { menuItem: true } },
+          restaurant: true,
+        },
+      });
     return updated
-      ? CartEntity.fromPrisma(updated as any).toView()
+      ? CartEntity.fromPrisma(
+          updated as any,
+        ).toView()
       : null;
   }
 

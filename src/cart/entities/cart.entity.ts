@@ -1,16 +1,25 @@
-import { Cart, CartItem, MenuItem, Restaurant } from '@prisma/client';
+import {
+  Cart,
+  CartItem,
+  MenuItem,
+  Restaurant,
+} from '@prisma/client';
 
 export class CartEntity {
   private constructor(
     private readonly props: Cart & {
-      items: (CartItem & { menuItem: MenuItem })[];
+      items: (CartItem & {
+        menuItem: MenuItem;
+      })[];
       restaurant: Restaurant | null;
     },
   ) {}
 
   static fromPrisma(
     cart: Cart & {
-      items: (CartItem & { menuItem: MenuItem })[];
+      items: (CartItem & {
+        menuItem: MenuItem;
+      })[];
       restaurant: Restaurant | null;
     },
   ) {
@@ -30,8 +39,12 @@ export class CartEntity {
       restaurant: this.props.restaurant,
       subtotal: Number(this.props.subtotal),
       handlingFee: Number(this.props.handlingFee),
-      packagingCharges: Number(this.props.packagingCharges),
-      deliveryCharges: Number(this.props.deliveryCharges),
+      packagingCharges: Number(
+        this.props.packagingCharges,
+      ),
+      deliveryCharges: Number(
+        this.props.deliveryCharges,
+      ),
       taxAmount: Number(this.props.taxAmount),
       total: Number(this.props.total),
     };

@@ -27,9 +27,10 @@ export class JwtStrategy extends PassportStrategy(
 
   async validate(payload: any) {
     if (payload.isGuest) {
-      const g = await this.guestUserService.getGuest(
-        payload.sub,
-      );
+      const g =
+        await this.guestUserService.getGuest(
+          payload.sub,
+        );
       if (!g) return null;
       return {
         id: payload.sub,

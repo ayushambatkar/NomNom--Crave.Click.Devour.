@@ -24,10 +24,7 @@ export class GuestCartRepository {
     const existing = await this.getRaw(userId);
     if (!existing) {
       const empty = this.empty(userId);
-      await this.save(
-        userId,
-        empty,
-      );
+      await this.save(userId, empty);
       return empty;
     }
     return existing;

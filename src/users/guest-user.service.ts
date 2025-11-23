@@ -10,7 +10,7 @@ import { GuestUserRepository } from './guest-user.repository';
 export class GuestUserService {
   constructor(
     private readonly repo: GuestUserRepository,
-  ) { }
+  ) {}
 
   async isGuest(id: string) {
     return !!(await this.repo.isGuest(id));

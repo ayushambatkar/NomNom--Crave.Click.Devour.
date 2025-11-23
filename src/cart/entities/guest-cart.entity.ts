@@ -1,4 +1,7 @@
-import { MenuItem, Restaurant } from '@prisma/client';
+import {
+  MenuItem,
+  Restaurant,
+} from '@prisma/client';
 
 export interface RawGuestCartItem {
   menuItemId: string;

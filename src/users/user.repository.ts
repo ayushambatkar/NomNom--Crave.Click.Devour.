@@ -35,7 +35,9 @@ export class UserRepository {
     userId: string,
     phoneNumber: string,
   ) {
-    this.logger.log("Upserting phone for user: " + userId);
+    this.logger.log(
+      'Upserting phone for user: ' + userId,
+    );
     return this.prisma.user.upsert({
       where: { id: userId },
       update: { phoneNumber },
@@ -88,7 +90,7 @@ export class UserRepository {
   async findUnique(args: {
     where: any;
     include: any;
-}) {
+  }) {
     return this.prisma.user.findUnique(args);
   }
 }

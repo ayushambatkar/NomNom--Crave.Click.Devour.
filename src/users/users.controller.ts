@@ -15,7 +15,7 @@ import { GetUser } from 'src/auth/decorator/get-user.decorator';
 @UseGuards(JwtGuard)
 @Controller({ path: 'users', version: '1' })
 export class UsersController {
-  constructor(private service: UsersService) { }
+  constructor(private service: UsersService) {}
 
   @Get('me')
   me(@GetUser('id') userId: string) {

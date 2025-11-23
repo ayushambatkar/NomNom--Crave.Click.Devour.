@@ -15,7 +15,7 @@ export class UsersService {
   constructor(
     private readonly guestService: GuestUserService,
     private readonly userRepo: UserRepository,
-  ) { }
+  ) {}
 
   getMe(userId: string) {
     return this.getUserOrGuest(userId);
@@ -33,7 +33,10 @@ export class UsersService {
         'Guest users cannot update profile',
       );
     }
-    return this.userRepo.updateProfile(userId, dto);
+    return this.userRepo.updateProfile(
+      userId,
+      dto,
+    );
   }
 
   // New helpers delegate to repository
@@ -41,7 +44,9 @@ export class UsersService {
     return this.userRepo.findByPhone(phoneNumber);
   }
   createPhoneUser(phoneNumber: string) {
-    return this.userRepo.createPhoneUser(phoneNumber);
+    return this.userRepo.createPhoneUser(
+      phoneNumber,
+    );
   }
 
   createGuest() {
@@ -52,10 +57,16 @@ export class UsersService {
     userId: string,
     phoneNumber: string,
   ): Promise<string> {
-    const dbUser = await this.userRepo.upsertPhone(userId, phoneNumber);
+    const dbUser =
+      await this.userRepo.upsertPhone(
+        userId,
+        phoneNumber,
+      );
 
     // 3. Remove guest record (best-effort)
-    await this.guestService.delete(userId).catch(() => undefined);
+    await this.guestService
+      .delete(userId)
+      .catch(() => undefined);
 
     return dbUser.id;
   }
@@ -78,7 +89,10 @@ export class UsersService {
         : null;
     }
     const updatedUser =
-      await this.userRepo.updateAddress(userId, dto);
+      await this.userRepo.updateAddress(
+        userId,
+        dto,
+      );
     return updatedUser
       ? UserEntity.fromPrisma(updatedUser as any)
       : null;

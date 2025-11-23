@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GuestCartRepository } from './guest-cart.repository';
 import { GuestCartEntity } from './entities';
-import { computeCartTotals } from './util/cart-totals.util';
+import { GuestUserService } from 'src/users/guest-user.service';
+import {
+  computeCartTotals,
+  haversineDistanceKm,
+} from './util/cart-totals.util';
 import { GuestCartDto } from './dto/guest_cart.dto';
 import { randomUUID } from 'crypto';
 
@@ -11,7 +15,8 @@ export class GuestCartService {
   constructor(
     private prisma: PrismaService,
     private guestCartRepo: GuestCartRepository,
-  ) { }
+    private guestUserService: GuestUserService,
+  ) {}
 
   // Redis-specific helpers removed; delegated to GuestCartRepository
 
@@ -72,8 +77,28 @@ export class GuestCartService {
     const restaurant = cart.restaurantId
       ? await this.prisma.restaurant.findUnique({
           where: { id: cart.restaurantId },
+          include: { address: true },
         })
       : null;
+    const guest =
+      await this.guestUserService.getGuest(
+        cart.userId,
+      );
+    const userAddress = guest?.address;
+    let distanceKm: number | null = null;
+    if (
+      restaurant?.address?.latitude &&
+      restaurant?.address?.longitude &&
+      userAddress?.latitude != null &&
+      userAddress?.longitude != null
+    ) {
+      distanceKm = haversineDistanceKm(
+        Number(userAddress.latitude),
+        Number(userAddress.longitude),
+        Number(restaurant.address.latitude),
+        Number(restaurant.address.longitude),
+      );
+    }
     const totals = computeCartTotals({
       items: cart.items,
       restaurant: restaurant
@@ -83,6 +108,7 @@ export class GuestCartService {
               restaurant.packagingCharges,
           }
         : null,
+      distanceKm,
     });
     Object.assign(cart, totals);
   }
@@ -103,9 +129,17 @@ export class GuestCartService {
     await this.guestCartRepo.ensure(userId);
   }
 
-  async migrateGuestCartToDb({ guestUserId, newUserId }: { guestUserId: string; newUserId: string }) {
+  async migrateGuestCartToDb({
+    guestUserId,
+    newUserId,
+  }: {
+    guestUserId: string;
+    newUserId: string;
+  }) {
     const cart =
-      await this.guestCartRepo.getRaw(guestUserId);
+      await this.guestCartRepo.getRaw(
+        guestUserId,
+      );
     if (!cart) return;
     // create or ensure DB cart
     const dbCart = await this.prisma.cart.upsert({
@@ -125,7 +159,7 @@ export class GuestCartService {
       where: { cartId: dbCart.id },
     });
     await this.prisma.cartItem.createMany({
-      data: cart.items.map(it => ({
+      data: cart.items.map((it) => ({
         cartId: dbCart.id,
         menuItemId: it.menuItemId,
         quantity: it.quantity,
@@ -133,8 +167,8 @@ export class GuestCartService {
       })),
     });
 
-    /** 
-     * compute totals similar to CartService.updateTotals use the cart service directly here 
+    /**
+     * compute totals similar to CartService.updateTotals use the cart service directly here
      * */
     // const items =
     //   await this.prisma.cartItem.findMany({
@@ -190,7 +224,9 @@ export class GuestCartService {
     await this.guestCartRepo.delete(guestUserId);
   }
 
-  private async buildGuestCartView(userId: string) {
+  private async buildGuestCartView(
+    userId: string,
+  ) {
     const raw =
       (await this.guestCartRepo.getRaw(userId)) ||
       this.guestCartRepo.empty(userId);

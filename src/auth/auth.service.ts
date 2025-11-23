@@ -20,7 +20,7 @@ export class AuthService {
     private userService: UsersService,
     private cartService: CartService,
     private guestCartService: GuestCartService,
-  ) { }
+  ) {}
   private HARD_CODED_OTP = '123456';
 
   async requestOtp(
@@ -47,15 +47,16 @@ export class AuthService {
 
     if (user.isGuest) {
       // upgrade and migrate cart; id remains same (we create DB user with guest id)
-      const newUserId = await this.userService.upgradeGuestToRegistered(
-        user.id,
-        phoneNumber,
-      );
+      const newUserId =
+        await this.userService.upgradeGuestToRegistered(
+          user.id,
+          phoneNumber,
+        );
       await this.guestCartService.migrateGuestCartToDb(
         {
           guestUserId: user.id,
           newUserId: newUserId,
-        }
+        },
       );
       return this.signTokens(
         newUserId,
@@ -65,7 +66,11 @@ export class AuthService {
     }
 
     // already registered
-    return this.signTokens(user.id, phoneNumber, false);
+    return this.signTokens(
+      user.id,
+      phoneNumber,
+      false,
+    );
   }
 
   async guestLogin() {
