@@ -7,28 +7,36 @@ import {
 } from '@nestjs/common';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { GuestCartService } from './guest-cart.service';
+import { CartRepository } from './cart.repository';
+import { CartEntity } from './entities';
+import { GuestUserService } from 'src/users/guest-user.service';
 
 @Injectable()
 export class CartService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private guestCart: GuestCartService,
+    private readonly cartRepo: CartRepository,
+    private readonly guestUserService: GuestUserService,
+  ) {}
 
   async getCart(userId: string) {
-    const prisma = this.prisma;
-    return prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: { include: { menuItem: true } },
-        restaurant: true,
-      },
-    });
+    if (await this.isGuest(userId)) {
+      return this.guestCart.getGuestCartView(userId);
+    }
+    const cart = await this.cartRepo.findByUserId(userId);
+    return cart
+      ? CartEntity.fromPrisma(cart as any).toView()
+      : null;
   }
 
   async clear(userId: string) {
+    if (await this.isGuest(userId)) {
+      return this.guestCart.clear(userId);
+    }
     const cart = await this.ensureCart(userId);
-    const prisma = this.prisma;
-    await prisma.cartItem.deleteMany({
-      where: { cartId: cart.id },
-    });
+    await this.cartRepo.deleteCartItems(cart.id);
     return this.updateTotals(cart.id, null);
   }
 
@@ -38,12 +46,10 @@ export class CartService {
     quantity = 1,
   ) {
     try {
-      const cart = await this.ensureCart(userId);
-      const prisma = this.prisma;
       const menuItem =
-        await prisma.menuItem.findUnique({
-          where: { id: menuItemId },
-        });
+        await this.cartRepo.findMenuItem(
+          menuItemId,
+        );
 
       // check for menu item existence
       if (!menuItem)
@@ -56,7 +62,16 @@ export class CartService {
           'Quantity must be at least 1',
         );
       }
-
+      if (await this.isGuest(userId)) {
+        return this.guestCart.addItemToGuestCart(
+          userId,
+          menuItem.id,
+          menuItem.restaurantId,
+          Number(menuItem.price),
+          quantity,
+        );
+      }
+      const cart = await this.ensureCart(userId);
       /**
        * Cart restaurant consistency check
        */
@@ -66,54 +81,41 @@ export class CartService {
         cart.restaurantId !==
           menuItem.restaurantId
       ) {
-        await prisma.cartItem.deleteMany({
-          where: { cartId: cart.id },
-        });
-        await prisma.cart.update({
-          where: { id: cart.id },
-          data: {
-            restaurantId: menuItem.restaurantId,
-          },
-        });
+        await this.cartRepo.deleteCartItems(
+          cart.id,
+        );
+        await this.cartRepo.updateCartRestaurant(
+          cart.id,
+          menuItem.restaurantId,
+        );
       } else if (!cart.restaurantId) {
         // if no restaurant assigned yet
         // assign the restaurant of the first added item
-        await prisma.cart.update({
-          where: { id: cart.id },
-          data: {
-            restaurantId: menuItem.restaurantId,
-          },
-        });
+        await this.cartRepo.updateCartRestaurant(
+          cart.id,
+          menuItem.restaurantId,
+        );
       }
       /**
        * Add or update item in cart
        */
       const existing =
-        await prisma.cartItem.findUnique({
-          where: {
-            cartId_menuItemId: {
-              cartId: cart.id,
-              menuItemId,
-            },
-          },
-        });
+        await this.cartRepo.findCartItem(
+          cart.id,
+          menuItemId,
+        );
       if (existing) {
-        await prisma.cartItem.update({
-          where: { id: existing.id },
-          data: {
-            quantity:
-              existing.quantity + quantity,
-          },
-        });
+        await this.cartRepo.updateCartItemQuantity(
+          existing.id,
+          existing.quantity + quantity,
+        );
       } else {
-        await prisma.cartItem.create({
-          data: {
-            cartId: cart.id,
-            menuItemId,
-            quantity,
-            unitPrice: menuItem.price,
-          },
-        });
+        await this.cartRepo.createCartItem(
+          cart.id,
+          menuItemId,
+          quantity,
+          menuItem.price,
+        );
       }
 
       return this.updateTotals(
@@ -129,19 +131,20 @@ export class CartService {
     userId: string,
     menuItemId: string,
   ) {
+    if (await this.isGuest(userId)) {
+      return this.guestCart.removeItemGuest(
+        userId,
+        menuItemId,
+      );
+    }
     const cart = await this.ensureCart(userId);
-    const prisma = this.prisma;
     const existing =
-      await prisma.cartItem.findUnique({
-        where: {
-          cartId_menuItemId: {
-            cartId: cart.id,
-            menuItemId,
-          },
-        },
-      });
+      await this.cartRepo.findCartItem(
+        cart.id,
+        menuItemId,
+      );
     if (!existing) return this.getCart(userId);
-    await prisma.cartItem.delete({
+    await this.prisma.cartItem.delete({
       where: { id: existing.id },
     });
     return this.updateTotals(
@@ -151,12 +154,18 @@ export class CartService {
   }
 
   private async ensureCart(userId: string) {
-    const prisma = this.prisma;
-    let cart = await prisma.cart.upsert({
-      where: { userId },
-      update: {},
-      create: { userId },
-    });
+    if (await this.isGuest(userId)) {
+      // Ensure guest cart exists and return a minimal object
+      await this.guestCart.ensureCartForUser(
+        userId,
+      );
+      return {
+        id: `cart:guest:${userId}`,
+        userId,
+      } as any;
+    }
+    const cart =
+      await this.cartRepo.upsertByUser(userId);
     return cart;
   }
 
@@ -169,10 +178,8 @@ export class CartService {
     cartId: string,
     restaurantId: string | null,
   ) {
-    const prisma = this.prisma;
-    const items = await prisma.cartItem.findMany({
-      where: { cartId },
-    });
+    const items =
+      await this.cartRepo.listCartItems(cartId);
     const subtotal = items.reduce(
       (sum, it) =>
         sum + Number(it.unitPrice) * it.quantity,
@@ -185,9 +192,9 @@ export class CartService {
     let taxAmount = 0;
     if (restaurantId) {
       const r =
-        await prisma.restaurant.findUnique({
-          where: { id: restaurantId },
-        });
+        await this.cartRepo.findRestaurant(
+          restaurantId,
+        );
       handlingFee = Number(r?.handlingFee ?? 0);
       packagingCharges = Number(
         r?.packagingCharges ?? 0,
@@ -210,23 +217,27 @@ export class CartService {
       packagingCharges +
       deliveryCharges +
       taxAmount;
-    await prisma.cart.update({
-      where: { id: cartId },
-      data: {
-        subtotal,
-        handlingFee,
-        packagingCharges,
-        deliveryCharges,
-        taxAmount,
-        total,
-      },
+    await this.cartRepo.updateTotals(cartId, {
+      subtotal,
+      handlingFee,
+      packagingCharges,
+      deliveryCharges,
+      taxAmount,
+      total,
     });
-    return prisma.cart.findUnique({
+    const updated = await this.prisma.cart.findUnique({
       where: { id: cartId },
       include: {
         items: { include: { menuItem: true } },
         restaurant: true,
       },
     });
+    return updated
+      ? CartEntity.fromPrisma(updated as any).toView()
+      : null;
+  }
+
+  private async isGuest(userId: string) {
+    return this.guestUserService.isGuest(userId);
   }
 }

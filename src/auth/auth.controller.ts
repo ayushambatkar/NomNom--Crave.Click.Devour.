@@ -16,8 +16,8 @@ import {
 import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
 import { GetUser } from './decorator/get-user.decorator';
 import { JwtGuard } from './guard';
-import type { User } from 'generated/prisma/client';
-
+import type { User } from '@prisma/client';
+import { UserEntity } from 'src/users/user.entity';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -50,13 +50,13 @@ export class AuthController {
   @Post('verify-otp')
   @UseGuards(JwtGuard)
   verifyOtp(
-    @GetUser() user: User,
+    @GetUser() user: any,
     @SnakeBody(VerifyOtpDto) dto: VerifyOtpDto,
   ) {
     return this.authService.verifyOtp(
       dto.phoneNumber,
       dto.otp,
-      user,
+      UserEntity.fromGuest(user),
     );
   }
 

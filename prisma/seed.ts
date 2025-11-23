@@ -134,15 +134,13 @@ async function createRestaurants(count = 18) {
 async function createUsers(count = 12) {
   const created: any[] = [];
   for (let i = 0; i < count; i++) {
-    const withAddress = Math.random() > 0.2; // 80% users have address
-    const addr = withAddress ? randomPointWithinKm(CENTER_LAT, CENTER_LNG, Math.random() * MAX_RADIUS_KM) : null;
+    const addr = randomPointWithinKm(CENTER_LAT, CENTER_LNG, Math.random() * MAX_RADIUS_KM);
     const p2= prisma;
     const user = await p2.user.create({
       data: {
         phoneNumber: `+918776${(100000 + i).toString()}`,
         name: `User ${i + 1}`,
-        isGuest: false,
-        ...(withAddress && {
+        ...({
           address: {
             create: {
               line1: `${randomInt(1, 300)} Cross Road`,

@@ -32,4 +32,8 @@ export class LoggerService
 
     next();
   }
+
+  log(message: string) {
+    return this.logger.log(message);
+  }
 }

@@ -1,3 +1,22 @@
+# NomNom -- Crave. Click. Devour.
+
+## What is this project about?
+
+NomNom is a food delivery service prototype built using Nest.js.
+
+This project has been extended to a basic food-delivery scaffold with:
+- Phone number + OTP auth (hardcoded OTP: 123456)
+- Guest login
+- Restaurants with address, opening/closing times, handling fee, and packaging charges
+- Menu items per restaurant
+- One cart per user; items from one restaurant only; resets on cross-restaurant add
+- Cart totals include restaurant fees
+
+
+
+
+# Nest.js documentation
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
@@ -65,6 +84,26 @@ Users
 ```bash
 $ npm install
 ```
+
+## Redis setup
+
+- A local Redis container is included in `docker-compose.yaml`.
+- Start Postgres and Redis for development:
+
+```bash
+npm run dev:up
+```
+
+Environment variables (optional; defaults shown):
+
+- `REDIS_URL` e.g. `redis://:password@localhost:6379/0`
+- or provide individual settings:
+  - `REDIS_HOST=127.0.0.1`
+  - `REDIS_PORT=6379`
+  - `REDIS_PASSWORD=`
+  - `REDIS_DB=0`
+
+The `RedisService` is available via DI from `RedisModule` and supports basic operations: `get`, `set(key, value, ttlSeconds?)`, `del`, `expire`, and `ping`.
 
 ## Compile and run the project
 

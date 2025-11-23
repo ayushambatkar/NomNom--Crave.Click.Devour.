@@ -6,16 +6,24 @@
     "configurations": [
         {
             "type": "node-terminal",
-            "name": "Dev",
+            "name": "Start Dev",
             "request": "launch",
             "command": "npm run start:dev",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "npm: dev:up",
         },
         {
             "type": "node-terminal",
-            "name": "Start DB server",
+            "name": "Start Resources",
             "request": "launch",
-            "command": "npm run db:dev:restart",
+            "command": "npm run dev:restart",
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "type": "node-terminal",
+            "name": "Stop Resources",
+            "request": "launch",
+            "command": "npm run dev:down",
             "cwd": "${workspaceFolder}"
         },
         {

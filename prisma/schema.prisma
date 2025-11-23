@@ -20,7 +20,6 @@ model User {
   addressId   String?  @unique @db.Uuid
   email       String?  @unique
   name        String?
-  isGuest     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -45,15 +44,15 @@ model Restaurant {
 
 model Address {
   id         String   @id @default(uuid()) @db.Uuid
-  line1      String
+  line1      String?
   line2      String?
   landmark   String?
   city       String
   state      String?
   postalCode String?
   country    String?
-  latitude   Decimal? @db.Decimal(9, 6)
-  longitude  Decimal? @db.Decimal(9, 6)
+  latitude   Decimal @db.Decimal(9, 6)
+  longitude  Decimal @db.Decimal(9, 6)
 
   restaurant Restaurant? @relation("RestaurantAddress")
   user       User?       @relation("UserAddress")

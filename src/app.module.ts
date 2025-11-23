@@ -13,6 +13,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { CartModule } from './cart/cart.module';
 import { LoggerService } from './logger/logger.service';
+import { RedisModule } from './common/redis/redis.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LoggerService } from './logger/logger.service';
     RestaurantsModule,
     CartModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService, LoggerService],

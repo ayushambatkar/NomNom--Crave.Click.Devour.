@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RestaurantRepository } from './restaurant.repository';
 import {
   CreateMenuItemDto,
   CreateRestaurantDto,
@@ -14,31 +15,13 @@ import {
 
 @Injectable()
 export class RestaurantsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private readonly repo: RestaurantRepository,
+  ) {}
 
   create(dto: CreateRestaurantDto) {
-    const p = this.prisma;
-    const {
-      name,
-      openingTime,
-      closingTime,
-      handlingFee,
-      packagingCharges,
-    } = dto;
-    const addressData = dto.addressObj;
-    return p.restaurant.create({
-      data: {
-        name,
-        openingTime,
-        closingTime,
-        handlingFee,
-        packagingCharges,
-        ...(addressData && {
-          address: { create: addressData },
-        }),
-      },
-      include: { address: true },
-    });
+    return this.repo.create(dto);
   }
 
   async list(user: User) {
@@ -70,7 +53,7 @@ export class RestaurantsService {
         lat,
         lng,
         30,
-        { includeAddressDetails: false }
+        { includeAddressDetails: false },
       );
       return restaurants;
     } catch (error) {
@@ -79,11 +62,7 @@ export class RestaurantsService {
   }
 
   async get(id: string) {
-    const p = this.prisma;
-    const exists = await p.restaurant.findUnique({
-      where: { id },
-      include: { address: true },
-    });
+    const exists = await this.repo.findById(id);
     if (!exists || exists === null) {
       throw new NotFoundException(
         'Restaurant not found',
@@ -96,54 +75,22 @@ export class RestaurantsService {
     id: string,
     dto: UpdateRestaurantDto,
   ) {
-    const p = this.prisma as any;
-    const exists = await p.restaurant.findUnique({
-      where: { id },
-    });
+    const exists = await this.repo.findById(id);
     if (!exists)
       throw new NotFoundException(
         'Restaurant not found',
       );
-    const {
-      name,
-      openingTime,
-      closingTime,
-      handlingFee,
-      packagingCharges,
-    } = dto as any;
-    const addressData = (dto as any).addressObj;
-    return p.restaurant.update({
-      where: { id },
-      data: {
-        name,
-        openingTime,
-        closingTime,
-        handlingFee,
-        packagingCharges,
-        ...(addressData && {
-          address: exists.addressId
-            ? { update: addressData }
-            : { create: addressData },
-        }),
-      },
-      include: { address: true },
-    });
+    return this.repo.update(id, dto);
   }
 
   async addMenuItem(
     restaurantId: string,
     dto: CreateMenuItemDto,
   ) {
-    const p = this.prisma;
-    return await p.menuItem.create({
-      data: {
-        restaurantId,
-        name: dto.name,
-        description: dto.description,
-        price: dto.price,
-        isAvailable: dto.isAvailable ?? true,
-      },
-    });
+    return this.repo.createMenuItem(
+      restaurantId,
+      dto,
+    );
   }
 
   listMenu(restaurantId: string) {
@@ -158,7 +105,10 @@ export class RestaurantsService {
     lat: number,
     lng: number,
     radiusKm = 5,
-    { includeAddressDetails: includeDetails = true }: { includeAddressDetails?: boolean } = {}
+    {
+      includeAddressDetails:
+        includeDetails = true,
+    }: { includeAddressDetails?: boolean } = {},
   ) {
     const prisma = this.prisma;
     // Haversine in SQL (PostgreSQL): distance in km
@@ -226,21 +176,23 @@ export class RestaurantsService {
       closingTime: row.closing_time,
       handlingFee: row.handling_fee,
       packagingCharges: row.packaging_charges,
-      address: includeDetails ? {
-        id: row.address_id,
-        line1: row.address_line1,
-        line2: row.address_line2,
-        landmark: row.address_landmark,
-        city: row.address_city,
-        state: row.address_state,
-        postalCode: row.address_postal_code,
-        country: row.address_country,
-        latitude: row.address_latitude,
-        longitude: row.address_longitude,
-      } : {
-        id: row.address_id,
-        line1: row.address_line1,
-      },
+      address: includeDetails
+        ? {
+            id: row.address_id,
+            line1: row.address_line1,
+            line2: row.address_line2,
+            landmark: row.address_landmark,
+            city: row.address_city,
+            state: row.address_state,
+            postalCode: row.address_postal_code,
+            country: row.address_country,
+            latitude: row.address_latitude,
+            longitude: row.address_longitude,
+          }
+        : {
+            id: row.address_id,
+            line1: row.address_line1,
+          },
       distanceKm: Number(row.distance_km),
     }));
   }

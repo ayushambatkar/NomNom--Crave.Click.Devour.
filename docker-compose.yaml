@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   dev-db:
     image: postgres:13
@@ -13,9 +11,18 @@ services:
       - devdb_data:/var/lib/postgresql/data
     networks:
       - dev-network
+  dev-redis:
+    image: redis:8.4-rc1-alpine3.22
+    ports:
+      - "6379:6379"
+    networks:
+      - dev-network
+    volumes:
+      - redis_data:/data
 
 networks:
   dev-network:
 
 volumes:
   devdb_data:
+  redis_data:

@@ -28,15 +28,14 @@ export function toSnakeCase(input: any): any {
     !(input instanceof Date)
   ) {
     // If this is a non-plain object with a toJSON (e.g., Prisma Decimal), use it.
-    const ctor = (input as any).constructor?.name;
+    const ctor = input.constructor?.name;
     if (
-      typeof (input as any).toJSON ===
-        'function' &&
+      typeof input.toJSON === 'function' &&
       ctor &&
       ctor !== 'Object'
     ) {
       // Convert Prisma Decimal to number to avoid exposing internal s/e/d structure
-      const json = (input as any).toJSON();
+      const json = input.toJSON();
       // If toJSON returns a stringified number, coerce to number (safe for currency with 2 dp)
       if (
         typeof json === 'string' &&
