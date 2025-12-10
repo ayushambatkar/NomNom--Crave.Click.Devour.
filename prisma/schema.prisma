@@ -24,6 +24,7 @@ model User {
   updatedAt   DateTime @updatedAt
 
   carts Cart[]
+  orders Order[]
 
   @@map("users")
 }
@@ -40,6 +41,7 @@ model Restaurant {
 
   menuItems MenuItem[]
   carts     Cart[]
+  orders    Order[]
 }
 
 model Address {
@@ -68,6 +70,7 @@ model MenuItem {
   isAvailable  Boolean    @default(true)
 
   cartItems CartItem[]
+  orderItems OrderItem[]
 }
 
 model Cart {
@@ -99,4 +102,59 @@ model CartItem {
   unitPrice  Decimal  @db.Decimal(10, 2)
 
   @@unique([cartId, menuItemId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  ACCEPTED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Order {
+  id            String        @id @default(uuid()) @db.Uuid
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String        @db.Uuid
+  restaurant    Restaurant?   @relation(fields: [restaurantId], references: [id])
+  restaurantId  String?       @db.Uuid
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentStatus PaymentStatus @default(INITIATED)
+  orderStatus   OrderStatus   @default(PENDING)
+  addressSnapshot Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         OrderItem[]
+  payment       Payment?
+}
+
+model OrderItem {
+  id               String    @id @default(uuid()) @db.Uuid
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId          String    @db.Uuid
+  menuItem         MenuItem? @relation(fields: [menuItemId], references: [id])
+  menuItemId       String?   @db.Uuid
+  nameSnapshot     String
+  unitPriceSnapshot Decimal   @db.Decimal(10, 2)
+  quantity         Int        @default(1)
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId       String        @unique @db.Uuid
+  provider      String?
+  status        PaymentStatus @default(INITIATED)
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }

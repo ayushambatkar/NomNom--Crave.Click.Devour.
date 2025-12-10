@@ -15,7 +15,7 @@ export class UpdateRestaurantDto {
   @ValidateNested()
   @Type(() => AddressDto)
   @IsOptional()
-  addressObj?: AddressDto;
+  address?: AddressDto;
 
   @IsString()
   @IsOptional()

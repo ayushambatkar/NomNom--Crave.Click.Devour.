@@ -15,14 +15,9 @@ export class CreateRestaurantDto {
   @IsNotEmpty()
   name: string;
 
-  @IsString()
-  @IsOptional()
-  // deprecated: use address below
-  address?: string;
-
   @ValidateNested()
   @Type(() => AddressDto)
-  addressObj: AddressDto;
+  address: AddressDto;
 
   @IsString()
   @IsNotEmpty()

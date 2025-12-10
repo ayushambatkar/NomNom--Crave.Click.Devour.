@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { GuestCartService } from './guest-cart.service';
+// import { GuestCartService } from './guest-cart.service';
 import { CartRepository } from './cart.repository';
 import { CartEntity } from './entities';
 import {
@@ -20,32 +20,36 @@ import { GuestUserService } from 'src/users/guest-user.service';
 export class CartService {
   constructor(
     private prisma: PrismaService,
-    private guestCart: GuestCartService,
+    // private guestCart: GuestCartService,
     private readonly cartRepo: CartRepository,
     private readonly guestUserService: GuestUserService,
-  ) {}
+  ) { }
 
   async getCart(userId: string) {
     if (await this.isGuest(userId)) {
-      return this.guestCart.getGuestCartView(
-        userId,
+      throw new HttpException(
+        'Login Required',
+        HttpStatus.UNAUTHORIZED,
       );
     }
     const cart =
       await this.cartRepo.findByUserId(userId);
     return cart
       ? CartEntity.fromPrisma(
-          cart as any,
-        ).toView()
+        cart as any,
+      ).toView()
       : null;
   }
 
   async clear(userId: string) {
     if (await this.isGuest(userId)) {
-      return this.guestCart.clear(userId);
+      throw new HttpException(
+        'Login Required',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     const cart = await this.ensureCart(userId);
-    await this.cartRepo.deleteCartItems(cart.id);
+    await this.cartRepo.clearCart(cart.id);
     return this.updateTotals(
       cart.id,
       userId,
@@ -59,6 +63,12 @@ export class CartService {
     quantity = 1,
   ) {
     try {
+      if (await this.isGuest(userId)) {
+        throw new HttpException(
+          'Login Required',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
       const menuItem =
         await this.cartRepo.findMenuItem(
           menuItemId,
@@ -75,15 +85,7 @@ export class CartService {
           'Quantity must be at least 1',
         );
       }
-      if (await this.isGuest(userId)) {
-        return this.guestCart.addItemToGuestCart(
-          userId,
-          menuItem.id,
-          menuItem.restaurantId,
-          Number(menuItem.price),
-          quantity,
-        );
-      }
+
       const cart = await this.ensureCart(userId);
       /**
        * Cart restaurant consistency check
@@ -92,9 +94,9 @@ export class CartService {
       if (
         cart.restaurantId &&
         cart.restaurantId !==
-          menuItem.restaurantId
+        menuItem.restaurantId
       ) {
-        await this.cartRepo.deleteCartItems(
+        await this.cartRepo.clearCart(
           cart.id,
         );
         await this.cartRepo.updateCartRestaurant(
@@ -146,9 +148,9 @@ export class CartService {
     menuItemId: string,
   ) {
     if (await this.isGuest(userId)) {
-      return this.guestCart.removeItemGuest(
-        userId,
-        menuItemId,
+      throw new HttpException(
+        'Login Required',
+        HttpStatus.UNAUTHORIZED,
       );
     }
     const cart = await this.ensureCart(userId);
@@ -168,16 +170,49 @@ export class CartService {
     );
   }
 
+  async decrementItem(
+    userId: string,
+    menuItemId: string,
+    quantity = 1,
+  ) {
+    if (quantity < 1) {
+      throw new BadRequestException(
+        'Quantity must be at least 1',
+      );
+    }
+    const cart = await this.ensureCart(userId);
+    const existing =
+      await this.cartRepo.findCartItem(
+        cart.id,
+        menuItemId,
+      );
+    if (existing) {
+      if (existing.quantity - quantity === 0) {
+        return this.removeItem(userId, menuItemId);
+      }
+      await this.cartRepo.updateCartItemQuantity(
+        existing.id,
+        existing.quantity - quantity,
+      );
+      return this.updateTotals(
+        existing.cartId,
+        userId,
+        cart.restaurantId ?? null,
+      );
+    } else {
+      throw new NotFoundException(
+        'Item not found in cart',
+      );
+    }
+
+  }
+
   private async ensureCart(userId: string) {
     if (await this.isGuest(userId)) {
-      // Ensure guest cart exists and return a minimal object
-      await this.guestCart.ensureCartForUser(
-        userId,
+      throw new HttpException(
+        'Login Required',
+        HttpStatus.UNAUTHORIZED,
       );
-      return {
-        id: `cart:guest:${userId}`,
-        userId,
-      } as any;
     }
     const cart =
       await this.cartRepo.upsertByUser(userId);
@@ -198,9 +233,9 @@ export class CartService {
       await this.cartRepo.listCartItems(cartId);
     const restaurant = restaurantId
       ? await this.prisma.restaurant.findUnique({
-          where: { id: restaurantId },
-          include: { address: true },
-        })
+        where: { id: restaurantId },
+        include: { address: true },
+      })
       : null;
     const user =
       await this.prisma.user.findUnique({
@@ -228,10 +263,10 @@ export class CartService {
       })),
       restaurant: restaurant
         ? {
-            handlingFee: restaurant.handlingFee,
-            packagingCharges:
-              restaurant.packagingCharges,
-          }
+          handlingFee: restaurant.handlingFee,
+          packagingCharges:
+            restaurant.packagingCharges,
+        }
         : null,
       distanceKm,
     });
@@ -249,8 +284,8 @@ export class CartService {
       });
     return updated
       ? CartEntity.fromPrisma(
-          updated as any,
-        ).toView()
+        updated as any,
+      ).toView()
       : null;
   }
 

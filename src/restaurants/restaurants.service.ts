@@ -83,7 +83,7 @@ export class RestaurantsService {
     return this.repo.update(id, dto);
   }
 
-  async addMenuItem(
+  async createMenuItem(
     restaurantId: string,
     dto: CreateMenuItemDto,
   ) {

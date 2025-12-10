@@ -9,8 +9,6 @@ import { UsersService } from 'src/users/users.service';
 import { CartModule } from 'src/cart/cart.module';
 import { RedisModule } from 'src/common/redis/redis.module';
 import { RedisService } from 'src/common/redis/redis.service';
-import { GuestCartService } from 'src/cart/guest-cart.service';
-import { GuestUserService } from 'src/users/guest-user.service';
 
 @Module({
   imports: [

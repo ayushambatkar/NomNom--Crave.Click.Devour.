@@ -1,0 +1,1308 @@
+{
+	"info": {
+		"_postman_id": "27ff9331-c9a0-4200-be0f-cbac9539593e",
+		"name": "NomNom API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33355633",
+		"_collection_link": "https://www.postman.com/maintenance-astronomer-3943408/workspace/nomnom-api/collection/33355633-27ff9331-c9a0-4200-be0f-cbac9539593e?action=share&source=collection_link&creator=33355633"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get Me",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/api/v1/users/me"
+					},
+					"response": [
+						{
+							"name": "Get Me",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": "{{base_url}}/users/me"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "24"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"18-WpW7cKPrfx4EmgN14biDMLXmXt0\""
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 15 Sep 2025 18:58:28 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "This is the current user"
+						}
+					]
+				},
+				{
+					"name": "Update Me",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{vault:json-web-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"address\": {\r\n        \"line1\": \"Kurla Complex\",\r\n        \"city\": \"Mumbai\",\r\n        \"country\": \"India\",\r\n        \"latitude\": 28.576937,\r\n        \"longitude\": 77.285548\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/users/me"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User Auth",
+			"item": [
+				{
+					"name": "Request OTP",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\":\"something@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/auth/signup"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"phone_number\": \"+918776100008\",\r\n    \"otp\": \"123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/auth/verify-otp"
+					},
+					"response": [
+						{
+							"name": "Verify OTP",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"phone_number\": \"9988776655\",\r\n    \"otp\": \"123456\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "{{base_url}}/api/v1/auth/verify-otp"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "558"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"22e-hNlBaxXg2csipZYP2gzU3cCmvH0\""
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 21 Sep 2025 12:08:11 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"user_id\": \"d7ae7e50-a4d0-4ac8-8874-8edd0578bcae\",\n    \"access_token\": \"{{vault:json-web-token}}\",\n    \"refresh_token\": \"{{vault:json-web-token}}\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Guest Login",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": ""
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refresh_token\": \"{{vault:json-web-token}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/auth/refresh"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Restaurants",
+			"item": [
+				{
+					"name": "Create Restaurant",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": ""
+					},
+					"response": [
+						{
+							"name": "Create Restaurant",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"name\": \"Test Kitchen\",\r\n    \"opening_time\": \"09:00\",\r\n    \"closing_time\": \"22:00\",\r\n    \"handling_fee\": 15,\r\n    \"packaging_charges\": 10,\r\n    \"address\": {\r\n      \"line1\": \"123 Main St\",\r\n      \"city\": \"Bengaluru\",\r\n      \"latitude\": 12.9716,\r\n      \"longitude\": 77.5946\r\n    }\r\n  }",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "{{base_url}}/api/v1/restaurants/"
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "418"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1a2-uH3UZO1kl+S4SQBuaOdRy3PkNtc\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 15:57:39 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1396a3e1-ca5a-4e15-ba84-275e3aad8af5\",\n    \"name\": \"Test Kitchen\",\n    \"address_id\": \"1212ff79-359c-420e-838f-6c09423fbe89\",\n    \"opening_time\": \"09:00\",\n    \"closing_time\": \"22:00\",\n    \"handling_fee\": 15,\n    \"packaging_charges\": 10,\n    \"address\": {\n        \"id\": \"1212ff79-359c-420e-838f-6c09423fbe89\",\n        \"line1\": \"123 Main St\",\n        \"line2\": null,\n        \"landmark\": null,\n        \"city\": \"Bengaluru\",\n        \"state\": null,\n        \"postal_code\": null,\n        \"country\": null,\n        \"latitude\": 12.9716,\n        \"longitude\": 77.5946\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get All Restaurants",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{vault:json-web-token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/api/v1/restaurants"
+					},
+					"response": [
+						{
+							"name": "Get All Restaurants",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/restaurants"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "4947"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1353-vnB4f7F6eg5uTd5by2fKISJe3dk\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 15:59:08 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"0e2e83be-e3e7-4d64-ada8-75422fd5ffee\",\n        \"name\": \"Kebab Kitchen\",\n        \"opening_time\": \"10:16\",\n        \"closing_time\": \"22:53\",\n        \"handling_fee\": 14.42,\n        \"packaging_charges\": 5.53,\n        \"address\": {\n            \"id\": \"f8909d98-3760-4b51-98e8-d19fd9357372\",\n            \"line1\": \"61 Main Street\"\n        },\n        \"distance_km\": 3.1239178766299567\n    },\n    {\n        \"id\": \"73be31e7-e092-4f69-91dc-81005c9124ef\",\n        \"name\": \"Street Eats\",\n        \"opening_time\": \"10:18\",\n        \"closing_time\": \"23:28\",\n        \"handling_fee\": 34.91,\n        \"packaging_charges\": 19.38,\n        \"address\": {\n            \"id\": \"51e690a1-5882-425a-ac71-9fa35fa7c168\",\n            \"line1\": \"58 Main Street\"\n        },\n        \"distance_km\": 3.983778904118235\n    },\n    {\n        \"id\": \"a5feab1d-4455-4ec3-a340-7271d8206994\",\n        \"name\": \"Ghar Ka Khana\",\n        \"opening_time\": \"10:51\",\n        \"closing_time\": \"22:27\",\n        \"handling_fee\": 32.86,\n        \"packaging_charges\": 16.51,\n        \"address\": {\n            \"id\": \"03c0c5eb-2722-4a85-8613-37bbdcd2d0ac\",\n            \"line1\": \"168 Main Street\"\n        },\n        \"distance_km\": 5.64478422409936\n    },\n    {\n        \"id\": \"6e6d45e1-83b7-4472-b080-7ffad1590d91\",\n        \"name\": \"Dosa Corner\",\n        \"opening_time\": \"11:46\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 27.71,\n        \"packaging_charges\": 12.66,\n        \"address\": {\n            \"id\": \"a6ee8ac2-5577-4b38-94c0-b96a2e513df1\",\n            \"line1\": \"189 Main Street\"\n        },\n        \"distance_km\": 6.864322054478374\n    },\n    {\n        \"id\": \"8936dbe8-61c9-4888-9236-eb4fb46940b7\",\n        \"name\": \"Bombay Bistro\",\n        \"opening_time\": \"8:46\",\n        \"closing_time\": \"20:41\",\n        \"handling_fee\": 32.02,\n        \"packaging_charges\": 16.37,\n        \"address\": {\n            \"id\": \"1de2893d-dbe9-4b50-a945-77e8454b9d40\",\n            \"line1\": \"64 Main Street\"\n        },\n        \"distance_km\": 7.327632279013185\n    },\n    {\n        \"id\": \"5cc70cf1-326a-48c3-9c3b-27f62246d77f\",\n        \"name\": \"Saffron Spoon\",\n        \"opening_time\": \"10:21\",\n        \"closing_time\": \"23:36\",\n        \"handling_fee\": 10.47,\n        \"packaging_charges\": 19.36,\n        \"address\": {\n            \"id\": \"688774d0-a1cf-458f-857c-d95f4d2a9674\",\n            \"line1\": \"117 Main Street\"\n        },\n        \"distance_km\": 8.364782781753556\n    },\n    {\n        \"id\": \"01e0fa33-df4c-4b89-aaa6-7381e5179999\",\n        \"name\": \"Masala Magic\",\n        \"opening_time\": \"10:50\",\n        \"closing_time\": \"22:11\",\n        \"handling_fee\": 31.92,\n        \"packaging_charges\": 10.08,\n        \"address\": {\n            \"id\": \"0b2e1a94-6d74-4d21-a6bb-aec91a8aa6a9\",\n            \"line1\": \"141 Main Street\"\n        },\n        \"distance_km\": 8.529077606972013\n    },\n    {\n        \"id\": \"f509943a-3d02-4f2c-b2ab-b9b03da0a31c\",\n        \"name\": \"Royal Biriyani\",\n        \"opening_time\": \"9:32\",\n        \"closing_time\": \"21:42\",\n        \"handling_fee\": 22.23,\n        \"packaging_charges\": 15.94,\n        \"address\": {\n            \"id\": \"f4da54fe-9fe6-4ec5-b676-488633444c1b\",\n            \"line1\": \"83 Main Street\"\n        },\n        \"distance_km\": 8.539217727572442\n    },\n    {\n        \"id\": \"c906ec75-32e8-4ef5-a5c4-f7413307935b\",\n        \"name\": \"Tandoor Tales\",\n        \"opening_time\": \"10:34\",\n        \"closing_time\": \"20:36\",\n        \"handling_fee\": 10.35,\n        \"packaging_charges\": 6.74,\n        \"address\": {\n            \"id\": \"3cdba5e4-cd2b-46ba-90f5-e35fedcc9c97\",\n            \"line1\": \"55 Main Street\"\n        },\n        \"distance_km\": 10.073623501118348\n    },\n    {\n        \"id\": \"45de6fb9-d79f-4cf0-a1c3-1208579d607c\",\n        \"name\": \"Curry Leaf\",\n        \"opening_time\": \"8:13\",\n        \"closing_time\": \"20:39\",\n        \"handling_fee\": 32.5,\n        \"packaging_charges\": 17.87,\n        \"address\": {\n            \"id\": \"6a7262bc-b910-4f85-b16c-c6932e6485af\",\n            \"line1\": \"180 Main Street\"\n        },\n        \"distance_km\": 10.439381443119467\n    },\n    {\n        \"id\": \"7c6d6232-a7f8-495a-9a80-6d38ab8fa173\",\n        \"name\": \"Veggie Delight\",\n        \"opening_time\": \"9:24\",\n        \"closing_time\": \"20:25\",\n        \"handling_fee\": 34.32,\n        \"packaging_charges\": 16.49,\n        \"address\": {\n            \"id\": \"bc559d7d-36a5-4387-b7f0-88c04c962b74\",\n            \"line1\": \"167 Main Street\"\n        },\n        \"distance_km\": 11.69439816825145\n    },\n    {\n        \"id\": \"37255392-547d-4e05-b5e2-97e120829082\",\n        \"name\": \"Shimla Restaurant\",\n        \"opening_time\": \"9:53\",\n        \"closing_time\": \"20:11\",\n        \"handling_fee\": 20.56,\n        \"packaging_charges\": 5.91,\n        \"address\": {\n            \"id\": \"fac90fb6-6bd9-45d5-8f3c-7d05046a9924\",\n            \"line1\": \"37 Main Street\"\n        },\n        \"distance_km\": 12.822792358983895\n    },\n    {\n        \"id\": \"aead0511-041c-49b5-a6c3-152f6f6b4042\",\n        \"name\": \"Spice Route\",\n        \"opening_time\": \"10:39\",\n        \"closing_time\": \"22:37\",\n        \"handling_fee\": 23.83,\n        \"packaging_charges\": 19.06,\n        \"address\": {\n            \"id\": \"3d3caa25-1ca0-4c6e-9e6d-701488e9af7e\",\n            \"line1\": \"167 Main Street\"\n        },\n        \"distance_km\": 13.581339216948935\n    },\n    {\n        \"id\": \"1180ccfd-52ab-486b-a416-0d0c369eb698\",\n        \"name\": \"Coastal Catch\",\n        \"opening_time\": \"9:48\",\n        \"closing_time\": \"20:16\",\n        \"handling_fee\": 31.06,\n        \"packaging_charges\": 5.96,\n        \"address\": {\n            \"id\": \"6bca52ff-e5f7-42de-8029-076a1255c6d8\",\n            \"line1\": \"186 Main Street\"\n        },\n        \"distance_km\": 13.74343249161769\n    },\n    {\n        \"id\": \"0ac728d1-d678-4c71-b44b-b826b59ea109\",\n        \"name\": \"Naan & Beyond\",\n        \"opening_time\": \"10:24\",\n        \"closing_time\": \"22:54\",\n        \"handling_fee\": 21.2,\n        \"packaging_charges\": 16.53,\n        \"address\": {\n            \"id\": \"568089c1-9176-4aeb-823b-fff7fb114f3a\",\n            \"line1\": \"87 Main Street\"\n        },\n        \"distance_km\": 14.363782221485428\n    },\n    {\n        \"id\": \"5c49f84a-5001-402f-abeb-070c444912e2\",\n        \"name\": \"Mysore Morsels\",\n        \"opening_time\": \"9:28\",\n        \"closing_time\": \"22:14\",\n        \"handling_fee\": 13.65,\n        \"packaging_charges\": 13.57,\n        \"address\": {\n            \"id\": \"15d14ca8-db64-44db-967b-27e9d20cc398\",\n            \"line1\": \"162 Main Street\"\n        },\n        \"distance_km\": 14.421184794890948\n    },\n    {\n        \"id\": \"6db11487-89bc-4e83-b71a-647ea96c1117\",\n        \"name\": \"Punjabi Dhaba\",\n        \"opening_time\": \"11:03\",\n        \"closing_time\": \"20:04\",\n        \"handling_fee\": 16.64,\n        \"packaging_charges\": 5.93,\n        \"address\": {\n            \"id\": \"310126db-f578-46af-b68b-1d881c16e9ba\",\n            \"line1\": \"58 Main Street\"\n        },\n        \"distance_km\": 15.085165939251942\n    },\n    {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Urban Tadka\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 32.7,\n        \"packaging_charges\": 7.97,\n        \"address\": {\n            \"id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n            \"line1\": \"135 Main Street\"\n        },\n        \"distance_km\": 16.84840750646926\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Restaurants Nearby",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/restaurants/nearby?lat=28.576937&lng=77.285548&radius_km=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"restaurants",
+								"nearby"
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "28.576937"
+								},
+								{
+									"key": "lng",
+									"value": "77.285548"
+								},
+								{
+									"key": "radius_km",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Get Restaurants Nearby",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/restaurants/nearby?lat=28.576937&lng=77.285548&radius_km=20",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"restaurants",
+										"nearby"
+									],
+									"query": [
+										{
+											"key": "lat",
+											"value": "28.576937"
+										},
+										{
+											"key": "lng",
+											"value": "77.285548"
+										},
+										{
+											"key": "radius_km",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "7554"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1d82-/YRXI4JRt3/+NpSR4uGOld9GaEw\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 16:03:47 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"0e2e83be-e3e7-4d64-ada8-75422fd5ffee\",\n        \"name\": \"Kebab Kitchen\",\n        \"opening_time\": \"10:16\",\n        \"closing_time\": \"22:53\",\n        \"handling_fee\": 14.42,\n        \"packaging_charges\": 5.53,\n        \"address\": {\n            \"id\": \"f8909d98-3760-4b51-98e8-d19fd9357372\",\n            \"line1\": \"61 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.604891,\n            \"longitude\": 77.288739\n        },\n        \"distance_km\": 3.1239178766299567\n    },\n    {\n        \"id\": \"73be31e7-e092-4f69-91dc-81005c9124ef\",\n        \"name\": \"Street Eats\",\n        \"opening_time\": \"10:18\",\n        \"closing_time\": \"23:28\",\n        \"handling_fee\": 34.91,\n        \"packaging_charges\": 19.38,\n        \"address\": {\n            \"id\": \"51e690a1-5882-425a-ac71-9fa35fa7c168\",\n            \"line1\": \"58 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.57688,\n            \"longitude\": 77.244751\n        },\n        \"distance_km\": 3.983778904118235\n    },\n    {\n        \"id\": \"a5feab1d-4455-4ec3-a340-7271d8206994\",\n        \"name\": \"Ghar Ka Khana\",\n        \"opening_time\": \"10:51\",\n        \"closing_time\": \"22:27\",\n        \"handling_fee\": 32.86,\n        \"packaging_charges\": 16.51,\n        \"address\": {\n            \"id\": \"03c0c5eb-2722-4a85-8613-37bbdcd2d0ac\",\n            \"line1\": \"168 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.621299,\n            \"longitude\": 77.257439\n        },\n        \"distance_km\": 5.64478422409936\n    },\n    {\n        \"id\": \"6e6d45e1-83b7-4472-b080-7ffad1590d91\",\n        \"name\": \"Dosa Corner\",\n        \"opening_time\": \"11:46\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 27.71,\n        \"packaging_charges\": 12.66,\n        \"address\": {\n            \"id\": \"a6ee8ac2-5577-4b38-94c0-b96a2e513df1\",\n            \"line1\": \"189 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.609964,\n            \"longitude\": 77.226149\n        },\n        \"distance_km\": 6.864322054478374\n    },\n    {\n        \"id\": \"8936dbe8-61c9-4888-9236-eb4fb46940b7\",\n        \"name\": \"Bombay Bistro\",\n        \"opening_time\": \"8:46\",\n        \"closing_time\": \"20:41\",\n        \"handling_fee\": 32.02,\n        \"packaging_charges\": 16.37,\n        \"address\": {\n            \"id\": \"1de2893d-dbe9-4b50-a945-77e8454b9d40\",\n            \"line1\": \"64 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.629354,\n            \"longitude\": 77.240057\n        },\n        \"distance_km\": 7.327632279013185\n    },\n    {\n        \"id\": \"5cc70cf1-326a-48c3-9c3b-27f62246d77f\",\n        \"name\": \"Saffron Spoon\",\n        \"opening_time\": \"10:21\",\n        \"closing_time\": \"23:36\",\n        \"handling_fee\": 10.47,\n        \"packaging_charges\": 19.36,\n        \"address\": {\n            \"id\": \"688774d0-a1cf-458f-857c-d95f4d2a9674\",\n            \"line1\": \"117 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.615466,\n            \"longitude\": 77.211961\n        },\n        \"distance_km\": 8.364782781753556\n    },\n    {\n        \"id\": \"01e0fa33-df4c-4b89-aaa6-7381e5179999\",\n        \"name\": \"Masala Magic\",\n        \"opening_time\": \"10:50\",\n        \"closing_time\": \"22:11\",\n        \"handling_fee\": 31.92,\n        \"packaging_charges\": 10.08,\n        \"address\": {\n            \"id\": \"0b2e1a94-6d74-4d21-a6bb-aec91a8aa6a9\",\n            \"line1\": \"141 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.612638,\n            \"longitude\": 77.208228\n        },\n        \"distance_km\": 8.529077606972013\n    },\n    {\n        \"id\": \"f509943a-3d02-4f2c-b2ab-b9b03da0a31c\",\n        \"name\": \"Royal Biriyani\",\n        \"opening_time\": \"9:32\",\n        \"closing_time\": \"21:42\",\n        \"handling_fee\": 22.23,\n        \"packaging_charges\": 15.94,\n        \"address\": {\n            \"id\": \"f4da54fe-9fe6-4ec5-b676-488633444c1b\",\n            \"line1\": \"83 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.615158,\n            \"longitude\": 77.209686\n        },\n        \"distance_km\": 8.539217727572442\n    },\n    {\n        \"id\": \"c906ec75-32e8-4ef5-a5c4-f7413307935b\",\n        \"name\": \"Tandoor Tales\",\n        \"opening_time\": \"10:34\",\n        \"closing_time\": \"20:36\",\n        \"handling_fee\": 10.35,\n        \"packaging_charges\": 6.74,\n        \"address\": {\n            \"id\": \"3cdba5e4-cd2b-46ba-90f5-e35fedcc9c97\",\n            \"line1\": \"55 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.619812,\n            \"longitude\": 77.194652\n        },\n        \"distance_km\": 10.073623501118348\n    },\n    {\n        \"id\": \"45de6fb9-d79f-4cf0-a1c3-1208579d607c\",\n        \"name\": \"Curry Leaf\",\n        \"opening_time\": \"8:13\",\n        \"closing_time\": \"20:39\",\n        \"handling_fee\": 32.5,\n        \"packaging_charges\": 17.87,\n        \"address\": {\n            \"id\": \"6a7262bc-b910-4f85-b16c-c6932e6485af\",\n            \"line1\": \"180 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.595501,\n            \"longitude\": 77.180742\n        },\n        \"distance_km\": 10.439381443119467\n    },\n    {\n        \"id\": \"7c6d6232-a7f8-495a-9a80-6d38ab8fa173\",\n        \"name\": \"Veggie Delight\",\n        \"opening_time\": \"9:24\",\n        \"closing_time\": \"20:25\",\n        \"handling_fee\": 34.32,\n        \"packaging_charges\": 16.49,\n        \"address\": {\n            \"id\": \"bc559d7d-36a5-4387-b7f0-88c04c962b74\",\n            \"line1\": \"167 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.548309,\n            \"longitude\": 77.170326\n        },\n        \"distance_km\": 11.69439816825145\n    },\n    {\n        \"id\": \"37255392-547d-4e05-b5e2-97e120829082\",\n        \"name\": \"Shimla Restaurant\",\n        \"opening_time\": \"9:53\",\n        \"closing_time\": \"20:11\",\n        \"handling_fee\": 20.56,\n        \"packaging_charges\": 5.91,\n        \"address\": {\n            \"id\": \"fac90fb6-6bd9-45d5-8f3c-7d05046a9924\",\n            \"line1\": \"37 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.612892,\n            \"longitude\": 77.160757\n        },\n        \"distance_km\": 12.822792358983895\n    },\n    {\n        \"id\": \"aead0511-041c-49b5-a6c3-152f6f6b4042\",\n        \"name\": \"Spice Route\",\n        \"opening_time\": \"10:39\",\n        \"closing_time\": \"22:37\",\n        \"handling_fee\": 23.83,\n        \"packaging_charges\": 19.06,\n        \"address\": {\n            \"id\": \"3d3caa25-1ca0-4c6e-9e6d-701488e9af7e\",\n            \"line1\": \"167 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.614256,\n            \"longitude\": 77.153092\n        },\n        \"distance_km\": 13.581339216948935\n    },\n    {\n        \"id\": \"1180ccfd-52ab-486b-a416-0d0c369eb698\",\n        \"name\": \"Coastal Catch\",\n        \"opening_time\": \"9:48\",\n        \"closing_time\": \"20:16\",\n        \"handling_fee\": 31.06,\n        \"packaging_charges\": 5.96,\n        \"address\": {\n            \"id\": \"6bca52ff-e5f7-42de-8029-076a1255c6d8\",\n            \"line1\": \"186 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.534835,\n            \"longitude\": 77.153248\n        },\n        \"distance_km\": 13.74343249161769\n    },\n    {\n        \"id\": \"0ac728d1-d678-4c71-b44b-b826b59ea109\",\n        \"name\": \"Naan & Beyond\",\n        \"opening_time\": \"10:24\",\n        \"closing_time\": \"22:54\",\n        \"handling_fee\": 21.2,\n        \"packaging_charges\": 16.53,\n        \"address\": {\n            \"id\": \"568089c1-9176-4aeb-823b-fff7fb114f3a\",\n            \"line1\": \"87 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.613535,\n            \"longitude\": 77.144454\n        },\n        \"distance_km\": 14.363782221485428\n    },\n    {\n        \"id\": \"5c49f84a-5001-402f-abeb-070c444912e2\",\n        \"name\": \"Mysore Morsels\",\n        \"opening_time\": \"9:28\",\n        \"closing_time\": \"22:14\",\n        \"handling_fee\": 13.65,\n        \"packaging_charges\": 13.57,\n        \"address\": {\n            \"id\": \"15d14ca8-db64-44db-967b-27e9d20cc398\",\n            \"line1\": \"162 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.611693,\n            \"longitude\": 77.143242\n        },\n        \"distance_km\": 14.421184794890948\n    },\n    {\n        \"id\": \"6db11487-89bc-4e83-b71a-647ea96c1117\",\n        \"name\": \"Punjabi Dhaba\",\n        \"opening_time\": \"11:03\",\n        \"closing_time\": \"20:04\",\n        \"handling_fee\": 16.64,\n        \"packaging_charges\": 5.93,\n        \"address\": {\n            \"id\": \"310126db-f578-46af-b68b-1d881c16e9ba\",\n            \"line1\": \"58 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.648164,\n            \"longitude\": 77.154024\n        },\n        \"distance_km\": 15.085165939251942\n    },\n    {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Urban Tadka\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 32.7,\n        \"packaging_charges\": 7.97,\n        \"address\": {\n            \"id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n            \"line1\": \"135 Main Street\",\n            \"line2\": null,\n            \"landmark\": \"Near Park\",\n            \"city\": \"Bengaluru\",\n            \"state\": null,\n            \"postal_code\": null,\n            \"country\": null,\n            \"latitude\": 28.676879,\n            \"longitude\": 77.1558\n        },\n        \"distance_km\": 16.84840750646926\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Restaurant by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/api/v1/restaurants/0b078e78-147a-44cd-8e86-ccd78a90ee44"
+					},
+					"response": [
+						{
+							"name": "Get Restaurant by id",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": "{{base_url}}/api/v1/restaurants/0b078e78-147a-44cd-8e86-ccd78a90ee44"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "436"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1b4-supZqFFjnM1ZtUp626JB0XDLOw4\""
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 04 Oct 2025 20:07:03 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"0b078e78-147a-44cd-8e86-ccd78a90ee44\",\n    \"name\": \"Spice Route\",\n    \"address_id\": \"d917e65a-632d-4cbd-94e1-c0f2348ecb08\",\n    \"opening_time\": \"8:43\",\n    \"closing_time\": \"23:31\",\n    \"handling_fee\": 19.52,\n    \"packaging_charges\": 16.26,\n    \"address\": {\n        \"id\": \"d917e65a-632d-4cbd-94e1-c0f2348ecb08\",\n        \"line1\": \"42 Main Street\",\n        \"line2\": null,\n        \"landmark\": \"Near Park\",\n        \"city\": \"Bengaluru\",\n        \"state\": null,\n        \"postal_code\": null,\n        \"country\": null,\n        \"latitude\": 28.640594,\n        \"longitude\": 77.134078\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Menu Items",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/api/v1/restaurants/0b078e78-147a-44cd-8e86-ccd78a90ee44/menu-items"
+					},
+					"response": [
+						{
+							"name": "Get Menu Items",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/restaurants/menu-items/06b04816-e302-4084-aac1-8e3ad726cc1f"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "814"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"32e-gW7wReR01TbHaxYiISm8m4AAc5A\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 16:41:11 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"dea59b66-f166-4be7-b991-4be71cba083f\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Veg Thali\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 217.19,\n        \"is_available\": true\n    },\n    {\n        \"id\": \"e3da5cbe-6316-461a-9cc6-5f6c0a6a0a4d\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Tandoori Roti (2pc)\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 67.84,\n        \"is_available\": true\n    },\n    {\n        \"id\": \"522fd6fd-f9da-4668-8bd2-caf88a09a0bb\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Paneer Butter Masala\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 184.65,\n        \"is_available\": true\n    },\n    {\n        \"id\": \"f58b4c7a-8d20-4e8a-9bba-413d32ca96e4\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Masala Dosa\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 136.8,\n        \"is_available\": true\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Update Restaurant Meta",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/restaurants/0b078e78-147a-44cd-8e86-ccd78a90ee44"
+					},
+					"response": [
+						{
+							"name": "Update Restaurant Meta",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"name\": \"Updated Kitchen\",\r\n    \"handling_fee\": 20,\r\n    \"address\": {\r\n      \"line1\": \"456 New St\",\r\n      \"city\": \"Bengaluru\",\r\n      \"latitude\": 12.9750,\r\n      \"longitude\": 77.6000\r\n    }\r\n  }",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "{{base_url}}/api/v1/restaurants/06b04816-e302-4084-aac1-8e3ad726cc1f"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "436"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1b4-hy3sV9VfM2/ifdxJyUaHIfeajNg\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 16:43:07 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n    \"name\": \"Updated Kitchen\",\n    \"address_id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n    \"opening_time\": \"10:19\",\n    \"closing_time\": \"20:45\",\n    \"handling_fee\": 20,\n    \"packaging_charges\": 7.97,\n    \"address\": {\n        \"id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n        \"line1\": \"135 Main Street\",\n        \"line2\": null,\n        \"landmark\": \"Near Park\",\n        \"city\": \"Bengaluru\",\n        \"state\": null,\n        \"postal_code\": null,\n        \"country\": null,\n        \"latitude\": 28.676879,\n        \"longitude\": 77.1558\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Add Menu Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Rawa Upma\",\r\n    \"description\": \"Warm and Fresh Rawa Upma served with lemon pickle\",\r\n    \"price\": \"499\",\r\n    \"is_available\": \"true\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/restaurants/0b078e78-147a-44cd-8e86-ccd78a90ee44/menu-items"
+					},
+					"response": [
+						{
+							"name": "Add Menu Item",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"name\": \"Rawa Upma\",\r\n    \"description\": \"Warm and Fresh Rawa Upma served with lemon pickle\",\r\n    \"price\": \"499\",\r\n    \"is_available\": \"true\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "{{base_url}}/api/v1/restaurants/menu-items/06b04816-e302-4084-aac1-8e3ad726cc1f"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "814"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"32e-gW7wReR01TbHaxYiISm8m4AAc5A\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 17:25:14 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"dea59b66-f166-4be7-b991-4be71cba083f\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Veg Thali\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 217.19,\n        \"is_available\": true\n    },\n    {\n        \"id\": \"e3da5cbe-6316-461a-9cc6-5f6c0a6a0a4d\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Tandoori Roti (2pc)\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 67.84,\n        \"is_available\": true\n    },\n    {\n        \"id\": \"522fd6fd-f9da-4668-8bd2-caf88a09a0bb\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Paneer Butter Masala\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 184.65,\n        \"is_available\": true\n    },\n    {\n        \"id\": \"f58b4c7a-8d20-4e8a-9bba-413d32ca96e4\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Masala Dosa\",\n        \"description\": \"Tasty and freshly prepared\",\n        \"price\": 136.8,\n        \"is_available\": true\n    }\n]"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Cart",
+			"item": [
+				{
+					"name": "Get cart for user",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/api/v1/cart"
+					},
+					"response": [
+						{
+							"name": "Get cart for user",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/cart"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1045"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"415-TyFJ2QNAIwhgrlU2efmYQ1a4u8E\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 17:29:17 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"f110e5f5-42ce-40a4-8a46-238f43294473\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"items\": [\n        {\n            \"id\": \"0315271c-cdf7-4016-845f-dd9bb9cef5a8\",\n            \"quantity\": 1,\n            \"unit_price\": 184.65,\n            \"menu_item\": {\n                \"id\": \"522fd6fd-f9da-4668-8bd2-caf88a09a0bb\",\n                \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n                \"name\": \"Paneer Butter Masala\",\n                \"description\": \"Tasty and freshly prepared\",\n                \"price\": 184.65,\n                \"is_available\": true\n            }\n        },\n        {\n            \"id\": \"46b68c56-8330-4fcf-acf4-cc4ea709c673\",\n            \"quantity\": 3,\n            \"unit_price\": 53.23,\n            \"menu_item\": {\n                \"id\": \"c83c0672-2e84-41d3-9ffa-5fd82789f0fa\",\n                \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n                \"name\": \"Tandoori Roti (2pc)\",\n                \"description\": \"Tasty and freshly prepared\",\n                \"price\": 53.23,\n                \"is_available\": false\n            }\n        }\n    ],\n    \"restaurant\": {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Updated Kitchen\",\n        \"address_id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 20,\n        \"packaging_charges\": 7.97\n    },\n    \"subtotal\": 344.34,\n    \"handling_fee\": 20,\n    \"packaging_charges\": 7.97,\n    \"delivery_charges\": 168,\n    \"tax_amount\": 17.22,\n    \"total\": 557.53\n}"
+						}
+					]
+				},
+				{
+					"name": "Add items to cart",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"menu_item_id\": \"0016f484-9101-4819-bbca-a832a1416093\",\r\n    \"quantity\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/v1/cart/add"
+					},
+					"response": [
+						{
+							"name": "Add items to cart",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"menu_item_id\": \"c83c0672-2e84-41d3-9ffa-5fd82789f0fa\"\r\n    \r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "{{base_url}}/api/v1/cart/add"
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1045"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"415-TyFJ2QNAIwhgrlU2efmYQ1a4u8E\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 09 Dec 2025 17:27:23 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"f110e5f5-42ce-40a4-8a46-238f43294473\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"items\": [\n        {\n            \"id\": \"0315271c-cdf7-4016-845f-dd9bb9cef5a8\",\n            \"quantity\": 1,\n            \"unit_price\": 184.65,\n            \"menu_item\": {\n                \"id\": \"522fd6fd-f9da-4668-8bd2-caf88a09a0bb\",\n                \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n                \"name\": \"Paneer Butter Masala\",\n                \"description\": \"Tasty and freshly prepared\",\n                \"price\": 184.65,\n                \"is_available\": true\n            }\n        },\n        {\n            \"id\": \"46b68c56-8330-4fcf-acf4-cc4ea709c673\",\n            \"quantity\": 3,\n            \"unit_price\": 53.23,\n            \"menu_item\": {\n                \"id\": \"c83c0672-2e84-41d3-9ffa-5fd82789f0fa\",\n                \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n                \"name\": \"Tandoori Roti (2pc)\",\n                \"description\": \"Tasty and freshly prepared\",\n                \"price\": 53.23,\n                \"is_available\": false\n            }\n        }\n    ],\n    \"restaurant\": {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Updated Kitchen\",\n        \"address_id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 20,\n        \"packaging_charges\": 7.97\n    },\n    \"subtotal\": 344.34,\n    \"handling_fee\": 20,\n    \"packaging_charges\": 7.97,\n    \"delivery_charges\": 168,\n    \"tax_amount\": 17.22,\n    \"total\": 557.53\n}"
+						}
+					]
+				},
+				{
+					"name": "Decrement Item Quantity",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": [
+						{
+							"name": "Decrement Item Quantity",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/cart/decrement?menu_item_id=c83c0672-2e84-41d3-9ffa-5fd82789f0fa&quantity=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"cart",
+										"decrement"
+									],
+									"query": [
+										{
+											"key": "menu_item_id",
+											"value": "c83c0672-2e84-41d3-9ffa-5fd82789f0fa"
+										},
+										{
+											"key": "quantity",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "745"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"2e9-eHY4N+p5qEVufEVtCAW3sqo/oyA\""
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 Dec 2025 15:20:28 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"f110e5f5-42ce-40a4-8a46-238f43294473\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"items\": [\n        {\n            \"id\": \"c3b46cc0-39ce-49df-9de0-5bb3040a53de\",\n            \"quantity\": 4,\n            \"unit_price\": 53.23,\n            \"menu_item\": {\n                \"id\": \"c83c0672-2e84-41d3-9ffa-5fd82789f0fa\",\n                \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n                \"name\": \"Tandoori Roti (2pc)\",\n                \"description\": \"Tasty and freshly prepared\",\n                \"price\": 53.23,\n                \"is_available\": false\n            }\n        }\n    ],\n    \"restaurant\": {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Updated Kitchen\",\n        \"address_id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 20,\n        \"packaging_charges\": 7.97\n    },\n    \"subtotal\": 212.92,\n    \"handling_fee\": 20,\n    \"packaging_charges\": 7.97,\n    \"delivery_charges\": 168,\n    \"tax_amount\": 10.65,\n    \"total\": 419.54\n}"
+						}
+					]
+				},
+				{
+					"name": "Clear Cart",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": [
+						{
+							"name": "Clear Cart",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/cart/clear"
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "428"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1ac-L10c4fC1JsHYsoiIbjXaUqsi++4\""
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 Dec 2025 15:02:44 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"f110e5f5-42ce-40a4-8a46-238f43294473\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"items\": [],\n    \"restaurant\": {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Updated Kitchen\",\n        \"address_id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 20,\n        \"packaging_charges\": 7.97\n    },\n    \"subtotal\": 0,\n    \"handling_fee\": 0,\n    \"packaging_charges\": 0,\n    \"delivery_charges\": 0,\n    \"tax_amount\": 0,\n    \"total\": 0\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Item From Cart",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/api/v1/cart/item/c83c0672-2e84-41d3-9ffa-5fd82789f0fa"
+					},
+					"response": [
+						{
+							"name": "Delete Item From Cart",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/cart/item/c83c0672-2e84-41d3-9ffa-5fd82789f0fa"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "439"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"1b7-UkXEbfYnuLVuH6emz8GxPQ6FULU\""
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 Dec 2025 15:21:24 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"f110e5f5-42ce-40a4-8a46-238f43294473\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"items\": [],\n    \"restaurant\": {\n        \"id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"name\": \"Updated Kitchen\",\n        \"address_id\": \"03b8c57c-a7f7-4c71-a59f-21311e6062a7\",\n        \"opening_time\": \"10:19\",\n        \"closing_time\": \"20:45\",\n        \"handling_fee\": 20,\n        \"packaging_charges\": 7.97\n    },\n    \"subtotal\": 0,\n    \"handling_fee\": 20,\n    \"packaging_charges\": 7.97,\n    \"delivery_charges\": 168,\n    \"tax_amount\": 0,\n    \"total\": 195.97\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Checkout",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": [
+						{
+							"name": "Checkout",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "{{base_url}}/api/v1/orders/checkout"
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "999"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"3e7-1NAdV/0pTnREObw2QO+cOV9qkm0\""
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 Dec 2025 15:55:13 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"10e549b9-e59c-4c9b-82e9-ec68264ae2fd\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n    \"amount\": 531.32,\n    \"payment_status\": \"INITIATED\",\n    \"order_status\": \"PENDING\",\n    \"address_snapshot\": {\n        \"note\": null,\n        \"user_address\": {\n            \"id\": \"0ba0823f-fabc-47e8-a043-0eafd691a38f\",\n            \"city\": \"Mumbai\",\n            \"line1\": \"Kurla Complex\",\n            \"line2\": null,\n            \"state\": null,\n            \"country\": \"India\",\n            \"landmark\": \"Near Market\",\n            \"latitude\": 28.576937,\n            \"longitude\": 77.285548,\n            \"postal_code\": null\n        },\n        \"restaurant_address\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\"\n    },\n    \"items\": [\n        {\n            \"id\": \"f294efeb-1b86-44ac-9c29-057e81b6a548\",\n            \"name\": \"Tandoori Roti (2pc)\",\n            \"unit_price\": 53.23,\n            \"quantity\": 6\n        }\n    ],\n    \"payment\": {\n        \"id\": \"0e34c005-9cb8-4574-ba4b-7f2c317ba18b\",\n        \"order_id\": \"10e549b9-e59c-4c9b-82e9-ec68264ae2fd\",\n        \"provider\": \"DUMMY\",\n        \"status\": \"INITIATED\",\n        \"transaction_id\": \"txn_10e549b9\",\n        \"created_at\": \"2025-12-10T15:55:13.431Z\",\n        \"updated_at\": \"2025-12-10T15:55:13.431Z\"\n    },\n    \"created_at\": \"2025-12-10T15:55:13.413Z\",\n    \"updated_at\": \"2025-12-10T15:55:13.413Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "List All Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/api/v1/orders"
+					},
+					"response": [
+						{
+							"name": "List All Orders",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/orders"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "211"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"d3-/wZY+5tIaObB0SmTSIjt3oubi6k\""
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 Dec 2025 15:58:08 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"10e549b9-e59c-4c9b-82e9-ec68264ae2fd\",\n        \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n        \"amount\": 531.32,\n        \"payment_status\": \"FAILED\",\n        \"order_status\": \"CANCELLED\",\n        \"created_at\": \"2025-12-10T15:55:13.413Z\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Invoice",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/api/v1/orders/10e549b9-e59c-4c9b-82e9-ec68264ae2fd"
+					},
+					"response": [
+						{
+							"name": "Get Invoice",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": "{{base_url}}/api/v1/orders/10e549b9-e59c-4c9b-82e9-ec68264ae2fd"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "995"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"3e3-Ko8zj9C2BWJGx4teYlgsiqxU8Sg\""
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 Dec 2025 16:00:17 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"10e549b9-e59c-4c9b-82e9-ec68264ae2fd\",\n    \"user_id\": \"ad14bfe3-002c-41c7-be0d-4ddde5256e79\",\n    \"restaurant_id\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\",\n    \"amount\": 531.32,\n    \"payment_status\": \"FAILED\",\n    \"order_status\": \"CANCELLED\",\n    \"address_snapshot\": {\n        \"note\": null,\n        \"user_address\": {\n            \"id\": \"0ba0823f-fabc-47e8-a043-0eafd691a38f\",\n            \"city\": \"Mumbai\",\n            \"line1\": \"Kurla Complex\",\n            \"line2\": null,\n            \"state\": null,\n            \"country\": \"India\",\n            \"landmark\": \"Near Market\",\n            \"latitude\": 28.576937,\n            \"longitude\": 77.285548,\n            \"postal_code\": null\n        },\n        \"restaurant_address\": \"06b04816-e302-4084-aac1-8e3ad726cc1f\"\n    },\n    \"items\": [\n        {\n            \"id\": \"f294efeb-1b86-44ac-9c29-057e81b6a548\",\n            \"name\": \"Tandoori Roti (2pc)\",\n            \"unit_price\": 53.23,\n            \"quantity\": 6\n        }\n    ],\n    \"payment\": {\n        \"id\": \"0e34c005-9cb8-4574-ba4b-7f2c317ba18b\",\n        \"order_id\": \"10e549b9-e59c-4c9b-82e9-ec68264ae2fd\",\n        \"provider\": \"DUMMY\",\n        \"status\": \"FAILED\",\n        \"transaction_id\": \"txn_10e549b9\",\n        \"created_at\": \"2025-12-10T15:55:13.431Z\",\n        \"updated_at\": \"2025-12-10T15:55:28.445Z\"\n    },\n    \"created_at\": \"2025-12-10T15:55:13.413Z\",\n    \"updated_at\": \"2025-12-10T15:55:28.453Z\"\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -3,14 +3,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma } from '@prisma/client';
 import { UpdateAddressDto } from './dto/update-address.dto';
-import { LoggerService } from 'src/logger/logger.service';
+import { LoggerService } from 'src/common/logger/logger.service';
 
 @Injectable()
 export class UserRepository {
   constructor(
     private readonly prisma: PrismaService,
     private logger: LoggerService,
-  ) {}
+  ) { }
 
   findById(id: string) {
     return this.prisma.user.findUnique({
@@ -30,14 +30,20 @@ export class UserRepository {
       data: { phoneNumber },
     });
   }
+  async upsertPhone(userId: string, phoneNumber: string) {
+    this.logger.log("Upserting phone for user: " + userId);
 
-  upsertPhone(
-    userId: string,
-    phoneNumber: string,
-  ) {
-    this.logger.log(
-      'Upserting phone for user: ' + userId,
-    );
+    // 1. Check if the phone already belongs to someone
+    const existingByPhone = await this.prisma.user.findUnique({
+      where: { phoneNumber },
+    });
+
+    // 2. If phone exists → return that user (your requirement)
+    if (existingByPhone) {
+      return existingByPhone;
+    }
+
+    // 3. If phone does NOT exist → update or create user with that ID
     return this.prisma.user.upsert({
       where: { id: userId },
       update: { phoneNumber },

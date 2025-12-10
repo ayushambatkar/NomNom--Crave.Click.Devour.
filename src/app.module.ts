@@ -12,8 +12,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { CartModule } from './cart/cart.module';
-import { LoggerService } from './logger/logger.service';
+import { LoggerService } from './common/logger/logger.service';
 import { RedisModule } from './common/redis/redis.module';
+import { OrdersModule } from './orders/orders.module';
+import { RabbitMQModule } from './common/mq/rabbitmq.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { RedisModule } from './common/redis/redis.module';
     CartModule,
     ConfigModule.forRoot({ isGlobal: true }),
     RedisModule,
+    RabbitMQModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService, LoggerService],

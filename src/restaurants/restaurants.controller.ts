@@ -70,16 +70,16 @@ export class RestaurantsController {
     return this.service.update(id, dto);
   }
 
-  @Post(':id/menu-items')
-  addMenuItem(
-    @Param('id') id: string,
+  @Post('/menu-items/:restaurantId')
+  createMenuItem(
+    @Param('restaurantId') restaurantId: string,
     @SnakeBody(CreateMenuItemDto)
     dto: CreateMenuItemDto,
   ) {
-    return this.service.addMenuItem(id, dto);
+    return this.service.createMenuItem(restaurantId, dto);
   }
 
-  @Get(':id/menu-items')
+  @Get('/menu-items/:id')
   listMenu(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {

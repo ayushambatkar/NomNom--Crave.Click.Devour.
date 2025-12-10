@@ -9,7 +9,6 @@ import { UsersService } from 'src/users/users.service';
 import { CartService } from 'src/cart/cart.service';
 import { User } from '@prisma/client';
 import { UserExtensions } from 'src/users/user.extension';
-import { GuestCartService } from 'src/cart/guest-cart.service';
 import { UserEntity } from 'src/users/user.entity';
 
 @Injectable({})
@@ -19,7 +18,6 @@ export class AuthService {
     private config: ConfigService,
     private userService: UsersService,
     private cartService: CartService,
-    private guestCartService: GuestCartService,
   ) {}
   private HARD_CODED_OTP = '123456';
 
@@ -52,12 +50,7 @@ export class AuthService {
           user.id,
           phoneNumber,
         );
-      await this.guestCartService.migrateGuestCartToDb(
-        {
-          guestUserId: user.id,
-          newUserId: newUserId,
-        },
-      );
+      await this.cartService.ensureCartForUser(newUserId);
       return this.signTokens(
         newUserId,
         phoneNumber,

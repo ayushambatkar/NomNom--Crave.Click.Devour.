@@ -8,7 +8,7 @@ import { GuestUserRepository } from './guest-user.repository';
 import { RedisModule } from 'src/common/redis/redis.module';
 import { RedisService } from 'src/common/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { LoggerService } from 'src/logger/logger.service';
+import { LoggerService } from 'src/common/logger/logger.service';
 
 @Module({
   imports: [PrismaModule, RedisModule],

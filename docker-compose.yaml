@@ -19,6 +19,18 @@ services:
       - dev-network
     volumes:
       - redis_data:/data
+  dev-rabbitmq:
+    image: rabbitmq:4.2.1-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - dev-network
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
 
 networks:
   dev-network:
@@ -26,3 +38,4 @@ networks:
 volumes:
   devdb_data:
   redis_data:
+  rabbitmq_data:

@@ -23,7 +23,7 @@ export class RestaurantRepository {
       handlingFee,
       packagingCharges,
     } = dto;
-    const addressData = dto.addressObj;
+    const addressData = dto.address;
 
     if (!addressData) {
       throw new BadRequestException(

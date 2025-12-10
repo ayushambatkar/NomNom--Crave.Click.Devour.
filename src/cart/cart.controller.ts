@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { JwtGuard } from 'src/auth/guard/jwt.guard';
@@ -13,6 +14,7 @@ import { UseGuards } from '@nestjs/common';
 import { GetUser } from 'src/auth/decorator/get-user.decorator';
 import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
 import { AddToCartDto } from './dto/add_to_cart.dto';
+import { DecrementDto } from './dto';
 
 @UseGuards(JwtGuard)
 @Controller('cart')
@@ -50,6 +52,18 @@ export class CartController {
     return this.service.removeItem(
       userId,
       menuItemId,
+    );
+  }
+
+  @Get('decrement')
+  decrementItem(
+    @GetUser('id') userId: string,
+    @Query() decrementDto: DecrementDto,
+  ) {
+    return this.service.decrementItem(
+      userId,
+      decrementDto.menuItemId,
+      decrementDto.quantity,
     );
   }
 }
