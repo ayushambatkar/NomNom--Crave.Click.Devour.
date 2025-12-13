@@ -4,6 +4,7 @@ import { CartService } from 'src/cart/cart.service';
 import { UsersService } from 'src/users/users.service';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { RabbitMQService } from 'src/common/mq/rabbitmq.service';
+import { CacheService } from 'src/common/redis/cache.service';
 
 interface OrderEventRecord {
   orderId: string;
@@ -24,6 +25,7 @@ export class OrdersService {
     private cartService: CartService,
     private usersService: UsersService,
     private mq: RabbitMQService,
+    private cache: CacheService,
   ) {}
 
   async checkout(userId: string, note?: string) {
@@ -78,6 +80,8 @@ export class OrdersService {
       },
     });
     await this.cartService.clear(userId);
+    // Invalidate user's orders cache since new order created
+    await this.cache.onOrderChanged(userId);
     this.recordEvent(order.id, 'order.payment.initiated');
     // Schedule pending & success/failure
     this.schedulePaymentFlow(order.id);
@@ -224,18 +228,21 @@ export class OrdersService {
   }
 
   async listUserOrders(userId: string) {
-    const orders = await this.prisma.order.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
+    // Cache user orders list (short TTL since orders change frequently)
+    return this.cache.getUserOrders(userId, async () => {
+      const orders = await this.prisma.order.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+      return orders.map((o) => ({
+        id: o.id,
+        restaurantId: o.restaurantId,
+        amount: o.amount,
+        paymentStatus: o.paymentStatus,
+        orderStatus: o.orderStatus,
+        createdAt: o.createdAt,
+      }));
     });
-    return orders.map((o) => ({
-      id: o.id,
-      restaurantId: o.restaurantId,
-      amount: o.amount,
-      paymentStatus: o.paymentStatus,
-      orderStatus: o.orderStatus,
-      createdAt: o.createdAt,
-    }));
   }
 
   getOrderEvents(orderId: string) {
