@@ -14,6 +14,15 @@ import {
 } from './dto';
 import { CacheService } from 'src/common/redis/cache.service';
 
+/**
+ * RestaurantsService - Restaurant and menu management with caching.
+ *
+ * @description Handles:
+ * - CRUD operations for restaurants
+ * - Menu item management
+ * - Location-based restaurant discovery (Haversine formula)
+ * - Redis caching for performance optimization
+ */
 @Injectable()
 export class RestaurantsService {
   constructor(
@@ -22,6 +31,16 @@ export class RestaurantsService {
     private readonly cache: CacheService,
   ) {}
 
+  /**
+   * Create a new restaurant.
+   *
+   * @description
+   * - Creates restaurant with address via repository
+   * - Invalidates all nearby cache patterns (new restaurant affects search results)
+   *
+   * @param dto - Restaurant creation data including name, times, fees, address
+   * @returns Created restaurant with address
+   */
   async create(dto: CreateRestaurantDto) {
     const restaurant = await this.repo.create(dto);
     // Invalidate nearby caches since new restaurant added
@@ -29,6 +48,18 @@ export class RestaurantsService {
     return restaurant;
   }
 
+  /**
+   * List restaurants based on user's location.
+   *
+   * @description
+   * - Requires user to have address with valid coordinates
+   * - Uses nearby() with 30km radius
+   * - Returns restaurants sorted by distance
+   *
+   * @param user - User record with addressId
+   * @returns Array of restaurants with distance_km
+   * @throws BadRequestException if user has no location
+   */
   async list(user: User) {
     try {
       if (user.addressId === null) {
@@ -66,6 +97,18 @@ export class RestaurantsService {
     }
   }
 
+  /**
+   * Get single restaurant by ID (cached).
+   *
+   * @description
+   * - Cache key: `restaurant:{id}`
+   * - TTL: 1 hour
+   * - Cache miss: fetches from DB and caches result
+   *
+   * @param id - Restaurant UUID
+   * @returns Restaurant with address
+   * @throws NotFoundException if not found
+   */
   async get(id: string) {
     // Cache single restaurant lookup
     const restaurant = await this.cache.getRestaurant(id, () =>
@@ -79,6 +122,18 @@ export class RestaurantsService {
     return restaurant;
   }
 
+  /**
+   * Update restaurant details.
+   *
+   * @description
+   * - Updates restaurant via repository
+   * - Invalidates caches: restaurant:{id}, restaurant:{id}:menu, nearby:*
+   *
+   * @param id - Restaurant UUID
+   * @param dto - Fields to update
+   * @returns Updated restaurant
+   * @throws NotFoundException if not found
+   */
   async update(
     id: string,
     dto: UpdateRestaurantDto,
@@ -94,6 +149,17 @@ export class RestaurantsService {
     return updated;
   }
 
+  /**
+   * Add a menu item to a restaurant.
+   *
+   * @description
+   * - Creates menu item via repository
+   * - Invalidates menu cache: `restaurant:{id}:menu`
+   *
+   * @param restaurantId - Restaurant UUID
+   * @param dto - Menu item data (name, description, price, isAvailable)
+   * @returns Created menu item
+   */
   async createMenuItem(
     restaurantId: string,
     dto: CreateMenuItemDto,
@@ -107,6 +173,17 @@ export class RestaurantsService {
     return item;
   }
 
+  /**
+   * Get menu items for a restaurant (cached).
+   *
+   * @description
+   * - Cache key: `restaurant:{id}:menu`
+   * - TTL: 30 minutes
+   * - Only returns available items (isAvailable: true)
+   *
+   * @param restaurantId - Restaurant UUID
+   * @returns Array of available menu items
+   */
   async listMenu(restaurantId: string) {
     // Cache menu items - same for all users until updated
     return this.cache.getRestaurantMenu(restaurantId, () =>
@@ -116,8 +193,28 @@ export class RestaurantsService {
     );
   }
 
-  // Find nearby restaurants sorted by distance (km) using Haversine formula
-  // Cached by rounded lat/lng to group users in same area
+  /**
+   * Find nearby restaurants sorted by distance using Haversine formula.
+   *
+   * @description
+   * Uses PostgreSQL raw query with Haversine formula for accurate
+   * great-circle distance calculation.
+   *
+   * Caching:
+   * - Key: `nearby:{lat_rounded}:{lng_rounded}:{radius}`
+   * - Coordinates rounded to 2 decimals (~1km precision for grouping)
+   * - TTL: 5 minutes
+   *
+   * Formula: 6371 * 2 * asin(sqrt(
+   *   sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlng/2)
+   * ))
+   *
+   * @param lat - User's latitude
+   * @param lng - User's longitude
+   * @param radiusKm - Search radius in kilometers (default: 5)
+   * @param options.includeAddressDetails - Include full address or just id/line1
+   * @returns Array of restaurants with distance_km, sorted by distance ASC
+   */
   async nearby(
     lat: number,
     lng: number,

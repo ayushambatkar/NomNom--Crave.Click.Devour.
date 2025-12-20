@@ -1,10 +1,10 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { CartService } from 'src/cart/cart.service';
 import { UsersService } from 'src/users/users.service';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
-import { RabbitMQService } from 'src/common/mq/rabbitmq.service';
 import { CacheService } from 'src/common/redis/cache.service';
+import { OrdersRepository } from './orders.repository';
+import { PaymentsService } from 'src/payments/payments.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 interface OrderEventRecord {
   orderId: string;
@@ -16,18 +16,36 @@ interface OrderEventRecord {
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger('OrdersService');
-  private lifecycleInterval: NodeJS.Timer | null = null;
-  private paymentWatchers = new Map<string, NodeJS.Timeout[]>();
   private events: OrderEventRecord[] = [];
 
   constructor(
-    private prisma: PrismaService,
+    private ordersRepository: OrdersRepository,
+    private paymentsService: PaymentsService,
     private cartService: CartService,
     private usersService: UsersService,
-    private mq: RabbitMQService,
     private cache: CacheService,
+    private prisma: PrismaService,
   ) {}
 
+  /**
+   * Create an order from the user's cart and initiate payment flow.
+   *
+   * @description Flow:
+   * 1. Validate user exists and has a delivery address
+   * 2. Retrieve cart and validate it's not empty
+   * 3. Create order with PENDING status via OrdersRepository
+   * 4. Snapshot all cart items as OrderItems (preserves price at time of order)
+   * 5. Create payment record via PaymentsService (INITIATED status)
+   * 6. Clear the user's cart
+   * 7. Invalidate user's orders cache
+   * 8. Schedule simulated payment flow (5s → PENDING, 15s → SUCCESS/FAILED)
+   * 9. Return invoice with order details
+   *
+   * @param userId - The ID of the user checking out
+   * @param note - Optional delivery note (e.g., "No onions", "Call on arrival")
+   * @returns Invoice object with order, items, and payment details
+   * @throws BadRequestException if user not found, no address, or cart empty
+   */
   async checkout(userId: string, note?: string) {
     // Validate user is registered (not guest)
     const user = await this.prisma.user.findUnique({
@@ -38,174 +56,78 @@ export class OrdersService {
     if (!user.address) {
       throw new BadRequestException('Address required before checkout');
     }
+
     // Get cart
     const cart = await this.cartService.getCart(userId);
     if (!cart || !cart.items || cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
-    // Create Order with PENDING & INITIATED
-    const order = await this.prisma.order.create({
-      data: {
-        userId: userId,
-        restaurantId: cart.restaurant?.id ?? null,
-        amount: cart.total,
-        paymentStatus: PaymentStatus.INITIATED,
-        orderStatus: OrderStatus.PENDING,
-        addressSnapshot: {
-          userAddress: user.address,
-          restaurantAddress: cart.restaurant?.id || null,
-          note: note || null,
-        },
+
+    // Create Order with PENDING & INITIATED via repository
+    const order = await this.ordersRepository.create({
+      userId: userId,
+      restaurantId: cart.restaurant?.id ?? null,
+      amount: cart.total,
+      addressSnapshot: {
+        userAddress: user.address,
+        restaurantAddress: cart.restaurant?.id || null,
+        note: note || null,
       },
     });
-    // Snapshot items
+
+    // Snapshot items via repository
     for (const it of cart.items) {
-      await this.prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          menuItemId: it.menuItem?.id ?? null,
-          nameSnapshot: it.menuItem?.name || 'Unknown',
-          unitPriceSnapshot: it.unitPrice,
-          quantity: it.quantity,
-        },
+      await this.ordersRepository.createOrderItem({
+        orderId: order.id,
+        menuItemId: it.menuItem?.id ?? null,
+        nameSnapshot: it.menuItem?.name || 'Unknown',
+        unitPriceSnapshot: it.unitPrice,
+        quantity: it.quantity,
       });
     }
-    // Create payment row
-    await this.prisma.payment.create({
-      data: {
-        orderId: order.id,
-        status: PaymentStatus.INITIATED,
-        provider: 'DUMMY',
-        transactionId: 'txn_' + order.id.slice(0, 8),
-      },
-    });
+
+    // Create payment record via payments service
+    await this.paymentsService.createPayment(order.id);
+
     await this.cartService.clear(userId);
+
     // Invalidate user's orders cache since new order created
     await this.cache.onOrderChanged(userId);
+
     this.recordEvent(order.id, 'order.payment.initiated');
-    // Schedule pending & success/failure
-    this.schedulePaymentFlow(order.id);
+
+    // Schedule payment flow via payments service
+    this.paymentsService.schedulePaymentFlow(order.id);
+
     return this.buildInvoice(order.id);
   }
 
-  private schedulePaymentFlow(orderId: string) {
-    const timers: NodeJS.Timeout[] = [];
-    // Move to PENDING after 5s
-    timers.push(
-      setTimeout(async () => {
-        // Publish to RabbitMQ; fallback to direct update if MQ not available
-        try {
-          await this.mq.publish('payments', {
-            type: 'order.payment.pending',
-            orderId,
-          });
-        } catch {
-          await this.updatePayment(orderId, PaymentStatus.PENDING);
-        }
-        this.recordEvent(orderId, 'order.payment.pending');
-      }, 5000),
-    );
-    // Decide success/failure after 15s total (10s after pending)
-    timers.push(
-      setTimeout(async () => {
-        const fail = Math.random() < 0.2; // 20% failure
-        if (fail) {
-          try {
-            await this.mq.publish('payments', {
-              type: 'order.payment.failed',
-              orderId,
-            });
-          } catch {
-            await this.updatePayment(orderId, PaymentStatus.FAILED);
-            await this.updateOrderStatus(orderId, OrderStatus.CANCELLED);
-          }
-          this.recordEvent(orderId, 'order.payment.failed');
-          this.recordEvent(orderId, 'order.cancelled');
-        } else {
-          try {
-            await this.mq.publish('payments', {
-              type: 'order.payment.success',
-              orderId,
-            });
-          } catch {
-            await this.updatePayment(orderId, PaymentStatus.SUCCESS);
-            await this.updateOrderStatus(orderId, OrderStatus.CONFIRMED);
-          }
-          this.recordEvent(orderId, 'order.payment.success');
-          this.recordEvent(orderId, 'order.confirmed');
-        }
-      }, 15000),
-    );
-    this.paymentWatchers.set(orderId, timers);
-    // Start lifecycle interval if not active
-    if (!this.lifecycleInterval) {
-      this.lifecycleInterval = setInterval(
-        () => this.advanceLifecycle(),
-        10000,
-      );
-    }
-  }
-
-  private async advanceLifecycle() {
-    // Cancel unpaid (still INITIATED or PENDING) after 60s
-    const now = new Date();
-    const cutoff = new Date(now.getTime() - 60000);
-    const unpaid = await this.prisma.order.findMany({
-      where: {
-        paymentStatus: { in: [PaymentStatus.INITIATED, PaymentStatus.PENDING] },
-        createdAt: { lt: cutoff },
-        orderStatus: OrderStatus.PENDING,
-      },
-    });
-    for (const o of unpaid) {
-      await this.updateOrderStatus(o.id, OrderStatus.CANCELLED);
-      this.recordEvent(o.id, 'order.cancelled.unpaid');
-    }
-
-    // Progress confirmed orders through ACCEPTED -> PREPARING -> OUT_FOR_DELIVERY -> DELIVERED
-    const progressing = await this.prisma.order.findMany({
-      where: {
-        orderStatus: { in: [OrderStatus.CONFIRMED, OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.OUT_FOR_DELIVERY] },
-      },
-    });
-    for (const o of progressing) {
-      let next: OrderStatus | null = null;
-      switch (o.orderStatus) {
-        case OrderStatus.CONFIRMED:
-          next = OrderStatus.ACCEPTED;
-          break;
-        case OrderStatus.ACCEPTED:
-          next = OrderStatus.PREPARING;
-          break;
-        case OrderStatus.PREPARING:
-          next = OrderStatus.OUT_FOR_DELIVERY;
-          break;
-        case OrderStatus.OUT_FOR_DELIVERY:
-          next = OrderStatus.DELIVERED;
-          break;
-      }
-      if (!next) continue;
-      // Random cancellation of 20% (excluding delivered) before moving to next
-      if (Math.random() < 0.2 && next !== OrderStatus.DELIVERED) {
-        await this.updateOrderStatus(o.id, OrderStatus.CANCELLED);
-        this.recordEvent(o.id, 'order.cancelled.random');
-        continue;
-      }
-      await this.updateOrderStatus(o.id, next);
-      this.recordEvent(o.id, 'order.status.' + next.toLowerCase());
-    }
-  }
-
+  /**
+   * Record an in-memory event for order tracking/debugging.
+   * @private
+   */
   private recordEvent(orderId: string, type: string, data?: any) {
     this.events.push({ orderId, type, timestamp: new Date(), data });
     this.logger.log(`Event ${type} for order ${orderId}`);
   }
 
+  /**
+   * Build a complete invoice for an order.
+   *
+   * @description Fetches order with all related data (items, payment)
+   * and transforms it into a client-friendly invoice format.
+   *
+   * @param orderId - The UUID of the order
+   * @returns Invoice object containing:
+   *   - Order metadata (id, userId, restaurantId, amount, statuses)
+   *   - Address snapshot (preserved from checkout time)
+   *   - Items array with name, unitPrice, quantity
+   *   - Payment details (provider, status, transactionId)
+   *   - Timestamps (createdAt, updatedAt)
+   * @throws BadRequestException if order not found
+   */
   async buildInvoice(orderId: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: { items: true, payment: true },
-    });
+    const order = await this.ordersRepository.findByIdWithDetails(orderId);
     if (!order) throw new BadRequestException('Order not found');
     return {
       id: order.id,
@@ -227,13 +149,22 @@ export class OrdersService {
     };
   }
 
+  /**
+   * Get list of orders for a user (cached).
+   *
+   * @description
+   * - Uses Redis cache with 2-minute TTL (orders change frequently)
+   * - Cache key: `user:{userId}:orders`
+   * - Returns summary view (no items/payment details)
+   * - Cache invalidated on order create/update via CacheService.onOrderChanged()
+   *
+   * @param userId - The ID of the user
+   * @returns Array of order summaries sorted by createdAt DESC
+   */
   async listUserOrders(userId: string) {
     // Cache user orders list (short TTL since orders change frequently)
     return this.cache.getUserOrders(userId, async () => {
-      const orders = await this.prisma.order.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-      });
+      const orders = await this.ordersRepository.findByUserId(userId);
       return orders.map((o) => ({
         id: o.id,
         restaurantId: o.restaurantId,
@@ -245,25 +176,19 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Get in-memory event log for an order (debugging/tracking).
+   *
+   * @description Events are stored in-memory and include:
+   * - order.payment.initiated
+   * - order.payment.pending
+   * - order.payment.success / order.payment.failed
+   * - order.confirmed, order.cancelled, etc.
+   *
+   * @param orderId - The UUID of the order
+   * @returns Array of OrderEventRecord with type, timestamp, and optional data
+   */
   getOrderEvents(orderId: string) {
     return this.events.filter((e) => e.orderId === orderId);
-  }
-
-  private updateOrderStatus(orderId: string, status: OrderStatus) {
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { orderStatus: status },
-    });
-  }
-  private async updatePayment(orderId: string, status: PaymentStatus) {
-    await this.prisma.payment.update({
-      where: { orderId },
-      data: { status },
-    });
-    // Mirror status on order for quick access
-    await this.prisma.order.update({
-      where: { id: orderId },
-      data: { paymentStatus: status },
-    });
   }
 }

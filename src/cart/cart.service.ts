@@ -16,6 +16,16 @@ import {
 } from './util/cart-totals.util';
 import { GuestUserService } from 'src/users/guest-user.service';
 
+/**
+ * CartService - Shopping cart management with restaurant consistency.
+ *
+ * @description Handles all cart operations for registered users:
+ * - One cart per user (upsert pattern)
+ * - Single restaurant per cart (auto-resets on cross-restaurant add)
+ * - Dynamic totals calculation with delivery fees
+ *
+ * Note: Guests cannot access cart - must register first.
+ */
 @Injectable()
 export class CartService {
   constructor(
@@ -25,6 +35,18 @@ export class CartService {
     private readonly guestUserService: GuestUserService,
   ) { }
 
+  /**
+   * Get user's cart with items and calculated totals.
+   *
+   * @description
+   * - Returns cart transformed via CartEntity.toView()
+   * - Includes restaurant info, items with menuItem details
+   * - Includes calculated totals (subtotal, fees, tax, delivery, total)
+   *
+   * @param userId - The ID of the user
+   * @returns CartView object or null if no cart exists
+   * @throws HttpException 401 if user is a guest
+   */
   async getCart(userId: string) {
     if (await this.isGuest(userId)) {
       throw new HttpException(
@@ -41,6 +63,18 @@ export class CartService {
       : null;
   }
 
+  /**
+   * Clear all items from user's cart.
+   *
+   * @description
+   * - Removes all CartItems from the cart
+   * - Resets all totals to zero
+   * - Does NOT remove the cart itself
+   *
+   * @param userId - The ID of the user
+   * @returns Updated (empty) cart view
+   * @throws HttpException 401 if user is a guest
+   */
   async clear(userId: string) {
     if (await this.isGuest(userId)) {
       throw new HttpException(
@@ -57,6 +91,36 @@ export class CartService {
     );
   }
 
+  /**
+   * Add item to cart with restaurant consistency check.
+   *
+   * @description Flow:
+   * 1. Validate user is not a guest
+   * 2. Find menu item and validate exists
+   * 3. Ensure cart exists for user
+   * 4. Restaurant consistency check:
+   *    - If cart has different restaurant: clear cart, switch restaurant
+   *    - If cart empty: set restaurant
+   *    - If same restaurant: continue
+   * 5. Add new item or increment existing item quantity
+   * 6. Recalculate all totals (subtotal, fees, tax, delivery)
+   *
+   * Totals Calculation:
+   * - subtotal = Σ(unitPrice × quantity)
+   * - handlingFee = restaurant.handlingFee
+   * - packagingCharges = restaurant.packagingCharges
+   * - deliveryCharges = ceil(distanceKm) × PER_KM_RATE (₹10/km)
+   * - taxAmount = subtotal × TAX_RATE (5%)
+   * - total = sum of all above
+   *
+   * @param userId - The ID of the user
+   * @param menuItemId - The UUID of the menu item to add
+   * @param quantity - Number of items to add (default: 1)
+   * @returns Updated cart view with recalculated totals
+   * @throws HttpException 401 if user is a guest
+   * @throws NotFoundException if menu item not found
+   * @throws BadRequestException if quantity < 1
+   */
   async addItem(
     userId: string,
     menuItemId: string,
@@ -143,6 +207,19 @@ export class CartService {
     }
   }
 
+  /**
+   * Remove an item completely from cart.
+   *
+   * @description
+   * - Deletes the CartItem record entirely
+   * - Recalculates totals after removal
+   * - No-op if item not in cart (returns current cart)
+   *
+   * @param userId - The ID of the user
+   * @param menuItemId - The UUID of the menu item to remove
+   * @returns Updated cart view
+   * @throws HttpException 401 if user is a guest
+   */
   async removeItem(
     userId: string,
     menuItemId: string,
@@ -170,6 +247,21 @@ export class CartService {
     );
   }
 
+  /**
+   * Decrease item quantity in cart.
+   *
+   * @description
+   * - Reduces quantity by specified amount
+   * - If new quantity would be 0: removes item entirely
+   * - Recalculates totals after update
+   *
+   * @param userId - The ID of the user
+   * @param menuItemId - The UUID of the menu item
+   * @param quantity - Amount to decrement (default: 1)
+   * @returns Updated cart view
+   * @throws BadRequestException if quantity < 1
+   * @throws NotFoundException if item not in cart
+   */
   async decrementItem(
     userId: string,
     menuItemId: string,
@@ -207,6 +299,15 @@ export class CartService {
 
   }
 
+  /**
+   * Ensure cart exists for user (upsert pattern).
+   *
+   * @description Creates cart if not exists, returns existing otherwise.
+   * @private
+   * @param userId - The ID of the user
+   * @returns Cart record
+   * @throws HttpException 401 if user is a guest
+   */
   private async ensureCart(userId: string) {
     if (await this.isGuest(userId)) {
       throw new HttpException(
@@ -219,11 +320,42 @@ export class CartService {
     return cart;
   }
 
-  // Public wrapper used by other services (e.g., AuthService)
+  /**
+   * Public wrapper for ensureCart - used by AuthService.
+   *
+   * @description Called during guest upgrade to ensure cart exists
+   * for the newly registered user.
+   *
+   * @param userId - The ID of the user
+   * @returns Cart record
+   */
   async ensureCartForUser(userId: string) {
     return this.ensureCart(userId);
   }
 
+  /**
+   * Recalculate and persist cart totals.
+   *
+   * @description Calculates all cart fees:
+   * 1. Fetch cart items from DB
+   * 2. Get restaurant with address for fees
+   * 3. Get user with address for delivery distance
+   * 4. Calculate distance via Haversine formula
+   * 5. Compute totals: subtotal, handlingFee, packagingCharges, deliveryCharges, tax
+   * 6. Persist totals to cart record
+   * 7. Return updated cart view
+   *
+   * Formula:
+   * - deliveryCharges = ceil(distanceKm) × PER_KM_RATE
+   * - taxAmount = subtotal × TAX_RATE
+   * - total = subtotal + handlingFee + packagingCharges + deliveryCharges + taxAmount
+   *
+   * @private
+   * @param cartId - The UUID of the cart
+   * @param userId - The ID of the user (for address lookup)
+   * @param restaurantId - The UUID of the restaurant (for fees)
+   * @returns Updated cart view or null
+   */
   private async updateTotals(
     cartId: string,
     userId: string,
@@ -289,6 +421,10 @@ export class CartService {
       : null;
   }
 
+  /**
+   * Check if user is a guest (Redis lookup).
+   * @private
+   */
   private async isGuest(userId: string) {
     return this.guestUserService.isGuest(userId);
   }
