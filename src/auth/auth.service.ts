@@ -131,10 +131,7 @@ export class AuthService {
   async guestLogin() {
     const user =
       await this.userService.createGuest();
-    // Cart will be created lazily on first access, but we can ensure a key exists
-    await this.cartService.ensureCartForUser(
-      user.id,
-    );
+
     return this.signTokens(
       user.id,
       undefined,

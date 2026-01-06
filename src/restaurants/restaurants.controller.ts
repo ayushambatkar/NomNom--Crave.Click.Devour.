@@ -39,13 +39,13 @@ export class RestaurantsController {
   }
 
   @Get()
-  list(@GetUser() user: User) {
+  listRestaurants(@GetUser() user: User) {
     return this.service.list(user);
   }
 
   // Define static route before dynamic ':id' to avoid matching 'nearby' as an id
   @Get('nearby')
-  nearby(@Query() query: NearbyQueryDto) {
+  getNearbyRestaurants(@Query() query: NearbyQueryDto) {
     const radiusKm = query.radiusKm ?? 5;
     return this.service.nearby(
       query.lat,
@@ -55,14 +55,14 @@ export class RestaurantsController {
   }
 
   @Get(':id')
-  get(
+  getRestaurantDetails(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.service.get(id);
   }
 
   @Put(':id')
-  update(
+  updateRestaurantMeta(
     @Param('id', new ParseUUIDPipe()) id: string,
     @SnakeBody(UpdateRestaurantDto)
     dto: UpdateRestaurantDto,

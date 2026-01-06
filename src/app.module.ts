@@ -16,6 +16,7 @@ import { LoggerService } from './common/logger/logger.service';
 import { RedisModule } from './common/redis/redis.module';
 import { OrdersModule } from './orders/orders.module';
 import { RabbitMQModule } from './common/mq/rabbitmq.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RabbitMQModule } from './common/mq/rabbitmq.module';
     RedisModule,
     RabbitMQModule,
     OrdersModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService, LoggerService],

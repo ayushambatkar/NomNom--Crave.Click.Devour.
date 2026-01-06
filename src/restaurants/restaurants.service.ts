@@ -62,7 +62,7 @@ export class RestaurantsService {
    */
   async list(user: User) {
     try {
-      if (user.addressId === null) {
+      if (user.addressId == null) {
         throw new BadRequestException(
           'Location required to fetch restaurants',
         );
