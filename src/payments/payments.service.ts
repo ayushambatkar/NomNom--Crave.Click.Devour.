@@ -1,5 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PaymentStatus, OrderStatus } from '@prisma/client';
+import {
+  Injectable,
+  Logger,
+} from '@nestjs/common';
+import {
+  PaymentStatus,
+  OrderStatus,
+} from '@prisma/client';
 import { PaymentsRepository } from './payments.repository';
 import { RabbitMQService } from 'src/common/mq/rabbitmq.service';
 
@@ -7,8 +13,13 @@ const PAYMENTS_QUEUE = 'payments';
 
 @Injectable()
 export class PaymentsService {
-  private readonly logger = new Logger('PaymentsService');
-  private paymentTimers = new Map<string, NodeJS.Timeout[]>();
+  private readonly logger = new Logger(
+    'PaymentsService',
+  );
+  private paymentTimers = new Map<
+    string,
+    NodeJS.Timeout[]
+  >();
 
   constructor(
     private paymentsRepository: PaymentsRepository,
@@ -27,7 +38,10 @@ export class PaymentsService {
    * @param provider - Payment provider name (default: 'DUMMY')
    * @returns Created payment record
    */
-  async createPayment(orderId: string, provider = 'DUMMY') {
+  async createPayment(
+    orderId: string,
+    provider = 'DUMMY',
+  ) {
     const transactionId = `txn_${orderId.slice(0, 8)}`;
     return this.paymentsRepository.create({
       orderId,
@@ -43,7 +57,9 @@ export class PaymentsService {
    * @returns Payment record or null if not found
    */
   async getPaymentByOrderId(orderId: string) {
-    return this.paymentsRepository.findByOrderId(orderId);
+    return this.paymentsRepository.findByOrderId(
+      orderId,
+    );
   }
 
   /**
@@ -55,8 +71,14 @@ export class PaymentsService {
    * @param orderId - The UUID of the order
    * @param status - New PaymentStatus (INITIATED, PENDING, SUCCESS, FAILED)
    */
-  async updateStatus(orderId: string, status: PaymentStatus) {
-    return this.paymentsRepository.updateStatus(orderId, status);
+  async updateStatus(
+    orderId: string,
+    status: PaymentStatus,
+  ) {
+    return this.paymentsRepository.updateStatus(
+      orderId,
+      status,
+    );
   }
 
   /**
@@ -88,10 +110,17 @@ export class PaymentsService {
             type: 'order.payment.pending',
             orderId,
           });
-          this.logger.log(`Published payment.pending for ${orderId}`);
+          this.logger.log(
+            `Published payment.pending for ${orderId}`,
+          );
         } catch (err) {
-          this.logger.warn(`MQ unavailable, updating payment directly: ${err}`);
-          await this.updateStatus(orderId, PaymentStatus.PENDING);
+          this.logger.warn(
+            `MQ unavailable, updating payment directly: ${err}`,
+          );
+          await this.updateStatus(
+            orderId,
+            PaymentStatus.PENDING,
+          );
         }
       }, 5000),
     );
@@ -103,25 +132,45 @@ export class PaymentsService {
 
         if (shouldFail) {
           try {
-            await this.mq.publish(PAYMENTS_QUEUE, {
-              type: 'order.payment.failed',
-              orderId,
-            });
-            this.logger.log(`Published payment.failed for ${orderId}`);
+            await this.mq.publish(
+              PAYMENTS_QUEUE,
+              {
+                type: 'order.payment.failed',
+                orderId,
+              },
+            );
+            this.logger.log(
+              `Published payment.failed for ${orderId}`,
+            );
           } catch (err) {
-            this.logger.warn(`MQ unavailable, updating payment directly: ${err}`);
-            await this.updateStatus(orderId, PaymentStatus.FAILED);
+            this.logger.warn(
+              `MQ unavailable, updating payment directly: ${err}`,
+            );
+            await this.updateStatus(
+              orderId,
+              PaymentStatus.FAILED,
+            );
           }
         } else {
           try {
-            await this.mq.publish(PAYMENTS_QUEUE, {
-              type: 'order.payment.success',
-              orderId,
-            });
-            this.logger.log(`Published payment.success for ${orderId}`);
+            await this.mq.publish(
+              PAYMENTS_QUEUE,
+              {
+                type: 'order.payment.success',
+                orderId,
+              },
+            );
+            this.logger.log(
+              `Published payment.success for ${orderId}`,
+            );
           } catch (err) {
-            this.logger.warn(`MQ unavailable, updating payment directly: ${err}`);
-            await this.updateStatus(orderId, PaymentStatus.SUCCESS);
+            this.logger.warn(
+              `MQ unavailable, updating payment directly: ${err}`,
+            );
+            await this.updateStatus(
+              orderId,
+              PaymentStatus.SUCCESS,
+            );
           }
         }
         // Cleanup timers for this order
@@ -141,7 +190,8 @@ export class PaymentsService {
    * @param orderId - The UUID of the order
    */
   cancelPaymentTimers(orderId: string) {
-    const timers = this.paymentTimers.get(orderId);
+    const timers =
+      this.paymentTimers.get(orderId);
     if (timers) {
       timers.forEach((t) => clearTimeout(t));
       this.paymentTimers.delete(orderId);
@@ -167,29 +217,52 @@ export class PaymentsService {
   async handlePaymentEvent(
     orderId: string,
     type: string,
-    onOrderStatusChange: (orderId: string, status: OrderStatus) => Promise<void>,
+    onOrderStatusChange: (
+      orderId: string,
+      status: OrderStatus,
+    ) => Promise<void>,
   ) {
-    this.logger.log(`Handling payment event: ${type} for ${orderId}`);
+    this.logger.log(
+      `Handling payment event: ${type} for ${orderId}`,
+    );
 
     switch (type) {
       case 'order.payment.initiated':
-        await this.updateStatus(orderId, PaymentStatus.INITIATED);
+        await this.updateStatus(
+          orderId,
+          PaymentStatus.INITIATED,
+        );
         break;
 
       case 'order.payment.pending':
-        await this.updateStatus(orderId, PaymentStatus.PENDING);
+        await this.updateStatus(
+          orderId,
+          PaymentStatus.PENDING,
+        );
         break;
 
       case 'order.payment.success':
-        await this.updateStatus(orderId, PaymentStatus.SUCCESS);
+        await this.updateStatus(
+          orderId,
+          PaymentStatus.SUCCESS,
+        );
         // Trigger order confirmation
-        await onOrderStatusChange(orderId, OrderStatus.CONFIRMED);
+        await onOrderStatusChange(
+          orderId,
+          OrderStatus.CONFIRMED,
+        );
         break;
 
       case 'order.payment.failed':
-        await this.updateStatus(orderId, PaymentStatus.FAILED);
+        await this.updateStatus(
+          orderId,
+          PaymentStatus.FAILED,
+        );
         // Cancel the order
-        await onOrderStatusChange(orderId, OrderStatus.CANCELLED);
+        await onOrderStatusChange(
+          orderId,
+          OrderStatus.CANCELLED,
+        );
         break;
     }
   }

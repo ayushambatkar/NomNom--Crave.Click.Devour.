@@ -33,7 +33,7 @@ export class CartService {
     // private guestCart: GuestCartService,
     private readonly cartRepo: CartRepository,
     private readonly guestUserService: GuestUserService,
-  ) { }
+  ) {}
 
   /**
    * Get user's cart with items and calculated totals.
@@ -58,8 +58,8 @@ export class CartService {
       await this.cartRepo.findByUserId(userId);
     return cart
       ? CartEntity.fromPrisma(
-        cart as any,
-      ).toView()
+          cart as any,
+        ).toView()
       : null;
   }
 
@@ -158,11 +158,9 @@ export class CartService {
       if (
         cart.restaurantId &&
         cart.restaurantId !==
-        menuItem.restaurantId
+          menuItem.restaurantId
       ) {
-        await this.cartRepo.clearCart(
-          cart.id,
-        );
+        await this.cartRepo.clearCart(cart.id);
         await this.cartRepo.updateCartRestaurant(
           cart.id,
           menuItem.restaurantId,
@@ -280,7 +278,10 @@ export class CartService {
       );
     if (existing) {
       if (existing.quantity - quantity === 0) {
-        return this.removeItem(userId, menuItemId);
+        return this.removeItem(
+          userId,
+          menuItemId,
+        );
       }
       await this.cartRepo.updateCartItemQuantity(
         existing.id,
@@ -296,7 +297,6 @@ export class CartService {
         'Item not found in cart',
       );
     }
-
   }
 
   /**
@@ -365,9 +365,9 @@ export class CartService {
       await this.cartRepo.listCartItems(cartId);
     const restaurant = restaurantId
       ? await this.prisma.restaurant.findUnique({
-        where: { id: restaurantId },
-        include: { address: true },
-      })
+          where: { id: restaurantId },
+          include: { address: true },
+        })
       : null;
     const user =
       await this.prisma.user.findUnique({
@@ -395,10 +395,10 @@ export class CartService {
       })),
       restaurant: restaurant
         ? {
-          handlingFee: restaurant.handlingFee,
-          packagingCharges:
-            restaurant.packagingCharges,
-        }
+            handlingFee: restaurant.handlingFee,
+            packagingCharges:
+              restaurant.packagingCharges,
+          }
         : null,
       distanceKm,
     });
@@ -416,8 +416,8 @@ export class CartService {
       });
     return updated
       ? CartEntity.fromPrisma(
-        updated as any,
-      ).toView()
+          updated as any,
+        ).toView()
       : null;
   }
 

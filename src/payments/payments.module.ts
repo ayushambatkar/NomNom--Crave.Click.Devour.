@@ -6,7 +6,10 @@ import { RabbitMQModule } from 'src/common/mq/rabbitmq.module';
 
 @Module({
   imports: [PrismaModule, RabbitMQModule],
-  providers: [PaymentsService, PaymentsRepository],
+  providers: [
+    PaymentsService,
+    PaymentsRepository,
+  ],
   exports: [PaymentsService, PaymentsRepository],
 })
 export class PaymentsModule {}

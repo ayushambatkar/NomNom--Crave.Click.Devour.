@@ -22,5 +22,7 @@ export interface SearchParams {
 
 export interface ISearchStrategy<T = unknown> {
   readonly type: string;
-  search(params: SearchParams): Promise<SearchResult<T>>;
+  search(
+    params: SearchParams,
+  ): Promise<SearchResult<T>>;
 }

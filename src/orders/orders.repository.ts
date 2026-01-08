@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentStatus,
+  Prisma,
+} from '@prisma/client';
 
 export interface CreateOrderData {
   userId: string;
@@ -34,7 +38,9 @@ export class OrdersRepository {
     });
   }
 
-  async createOrderItem(data: CreateOrderItemData) {
+  async createOrderItem(
+    data: CreateOrderItemData,
+  ) {
     return this.prisma.orderItem.create({
       data: {
         orderId: data.orderId,
@@ -69,7 +75,12 @@ export class OrdersRepository {
   async findUnpaidOrders(cutoffDate: Date) {
     return this.prisma.order.findMany({
       where: {
-        paymentStatus: { in: [PaymentStatus.INITIATED, PaymentStatus.PENDING] },
+        paymentStatus: {
+          in: [
+            PaymentStatus.INITIATED,
+            PaymentStatus.PENDING,
+          ],
+        },
         createdAt: { lt: cutoffDate },
         orderStatus: OrderStatus.PENDING,
       },
@@ -89,18 +100,28 @@ export class OrdersRepository {
           ],
         },
       },
-      select: { id: true, orderStatus: true, userId: true },
+      select: {
+        id: true,
+        orderStatus: true,
+        userId: true,
+      },
     });
   }
 
-  async updateStatus(orderId: string, status: OrderStatus) {
+  async updateStatus(
+    orderId: string,
+    status: OrderStatus,
+  ) {
     return this.prisma.order.update({
       where: { id: orderId },
       data: { orderStatus: status },
     });
   }
 
-  async updatePaymentStatus(orderId: string, status: PaymentStatus) {
+  async updatePaymentStatus(
+    orderId: string,
+    status: PaymentStatus,
+  ) {
     return this.prisma.order.update({
       where: { id: orderId },
       data: { paymentStatus: status },

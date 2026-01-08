@@ -4,7 +4,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { Restaurant, User } from '@prisma/client';
+import type {
+  Restaurant,
+  User,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RestaurantRepository } from './restaurant.repository';
 import {
@@ -42,9 +45,12 @@ export class RestaurantsService {
    * @returns Created restaurant with address
    */
   async create(dto: CreateRestaurantDto) {
-    const restaurant = await this.repo.create(dto);
+    const restaurant =
+      await this.repo.create(dto);
     // Invalidate nearby caches since new restaurant added
-    await this.cache.invalidatePattern('nearby:*');
+    await this.cache.invalidatePattern(
+      'nearby:*',
+    );
     return restaurant;
   }
 
@@ -111,9 +117,10 @@ export class RestaurantsService {
    */
   async get(id: string) {
     // Cache single restaurant lookup
-    const restaurant = await this.cache.getRestaurant(id, () =>
-      this.repo.findById(id),
-    );
+    const restaurant =
+      await this.cache.getRestaurant(id, () =>
+        this.repo.findById(id),
+      );
     if (!restaurant) {
       throw new NotFoundException(
         'Restaurant not found',
@@ -143,7 +150,10 @@ export class RestaurantsService {
       throw new NotFoundException(
         'Restaurant not found',
       );
-    const updated = await this.repo.update(id, dto);
+    const updated = await this.repo.update(
+      id,
+      dto,
+    );
     // Invalidate caches on update
     await this.cache.onRestaurantUpdated(id);
     return updated;
@@ -186,10 +196,15 @@ export class RestaurantsService {
    */
   async listMenu(restaurantId: string) {
     // Cache menu items - same for all users until updated
-    return this.cache.getRestaurantMenu(restaurantId, () =>
-      this.prisma.menuItem.findMany({
-        where: { restaurantId, isAvailable: true },
-      }),
+    return this.cache.getRestaurantMenu(
+      restaurantId,
+      () =>
+        this.prisma.menuItem.findMany({
+          where: {
+            restaurantId,
+            isAvailable: true,
+          },
+        }),
     );
   }
 
@@ -225,12 +240,17 @@ export class RestaurantsService {
     }: { includeAddressDetails?: boolean } = {},
   ) {
     // Cache key groups users within ~1km of each other
-    return this.cache.getNearbyRestaurants(lat, lng, radiusKm, async () => {
-      const prisma = this.prisma;
-      // Haversine in SQL (PostgreSQL): distance in km
-      // Uses radians and earth radius 6371 km
-      const results = await prisma.$queryRawUnsafe(
-        `
+    return this.cache.getNearbyRestaurants(
+      lat,
+      lng,
+      radiusKm,
+      async () => {
+        const prisma = this.prisma;
+        // Haversine in SQL (PostgreSQL): distance in km
+        // Uses radians and earth radius 6371 km
+        const results =
+          await prisma.$queryRawUnsafe(
+            `
     SELECT 
           r.id                          AS restaurant_id,
           r.name                        AS restaurant_name,
@@ -279,38 +299,40 @@ export class RestaurantsService {
           ) <= $3::float8
         ORDER BY distance_km ASC
       `,
-        lat,
-        lng,
-        radiusKm,
-      );
+            lat,
+            lng,
+            radiusKm,
+          );
 
-      // Map to a clean shape including nested address and distance
-      return (results as any[]).map((row) => ({
-        id: row.restaurant_id,
-        name: row.restaurant_name,
-        openingTime: row.opening_time,
-        closingTime: row.closing_time,
-        handlingFee: row.handling_fee,
-        packagingCharges: row.packaging_charges,
-        address: includeDetails
-          ? {
-              id: row.address_id,
-              line1: row.address_line1,
-              line2: row.address_line2,
-              landmark: row.address_landmark,
-              city: row.address_city,
-              state: row.address_state,
-              postalCode: row.address_postal_code,
-              country: row.address_country,
-              latitude: row.address_latitude,
-              longitude: row.address_longitude,
-            }
-          : {
-              id: row.address_id,
-              line1: row.address_line1,
-            },
-        distanceKm: Number(row.distance_km),
-      }));
-    });
+        // Map to a clean shape including nested address and distance
+        return (results as any[]).map((row) => ({
+          id: row.restaurant_id,
+          name: row.restaurant_name,
+          openingTime: row.opening_time,
+          closingTime: row.closing_time,
+          handlingFee: row.handling_fee,
+          packagingCharges: row.packaging_charges,
+          address: includeDetails
+            ? {
+                id: row.address_id,
+                line1: row.address_line1,
+                line2: row.address_line2,
+                landmark: row.address_landmark,
+                city: row.address_city,
+                state: row.address_state,
+                postalCode:
+                  row.address_postal_code,
+                country: row.address_country,
+                latitude: row.address_latitude,
+                longitude: row.address_longitude,
+              }
+            : {
+                id: row.address_id,
+                line1: row.address_line1,
+              },
+          distanceKm: Number(row.distance_km),
+        }));
+      },
+    );
   }
 }

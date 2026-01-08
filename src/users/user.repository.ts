@@ -10,7 +10,7 @@ export class UserRepository {
   constructor(
     private readonly prisma: PrismaService,
     private logger: LoggerService,
-  ) { }
+  ) {}
 
   findById(id: string) {
     return this.prisma.user.findUnique({
@@ -30,13 +30,19 @@ export class UserRepository {
       data: { phoneNumber },
     });
   }
-  async upsertPhone(userId: string, phoneNumber: string) {
-    this.logger.log("Upserting phone for user: " + userId);
+  async upsertPhone(
+    userId: string,
+    phoneNumber: string,
+  ) {
+    this.logger.log(
+      'Upserting phone for user: ' + userId,
+    );
 
     // 1. Check if the phone already belongs to someone
-    const existingByPhone = await this.prisma.user.findUnique({
-      where: { phoneNumber },
-    });
+    const existingByPhone =
+      await this.prisma.user.findUnique({
+        where: { phoneNumber },
+      });
 
     // 2. If phone exists → return that user (your requirement)
     if (existingByPhone) {

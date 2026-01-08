@@ -1,4 +1,9 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto';
 import { JwtGuard } from 'src/auth/guard';
@@ -6,7 +11,9 @@ import { JwtGuard } from 'src/auth/guard';
 @UseGuards(JwtGuard)
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  constructor(
+    private readonly searchService: SearchService,
+  ) {}
 
   /**
    * Unified search endpoint
@@ -18,12 +25,21 @@ export class SearchController {
    */
   @Get()
   search(@Query() dto: SearchQueryDto) {
-    const { type, query, page, limit, filters } = dto;
-    const params = { query, page, limit, filters };
+    const { type, query, page, limit, filters } =
+      dto;
+    const params = {
+      query,
+      page,
+      limit,
+      filters,
+    };
 
     // If type is specified, search only that type
     if (type) {
-      return this.searchService.search(type, params);
+      return this.searchService.search(
+        type,
+        params,
+      );
     }
 
     // Otherwise, search all types (unified search)
@@ -33,7 +49,8 @@ export class SearchController {
   @Get('types')
   getAvailableTypes() {
     return {
-      types: this.searchService.getAvailableTypes(),
+      types:
+        this.searchService.getAvailableTypes(),
     };
   }
 }

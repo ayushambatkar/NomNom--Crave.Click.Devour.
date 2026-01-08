@@ -1,4 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { RabbitMQService } from 'src/common/mq/rabbitmq.service';
 import { OrderStatus } from '@prisma/client';
 import { OrdersRepository } from './orders.repository';
@@ -18,9 +22,14 @@ import { CacheService } from 'src/common/redis/cache.service';
  * - orders: Order status events (confirmed, accepted, preparing, delivered, cancelled)
  */
 @Injectable()
-export class OrdersEvents implements OnModuleInit {
-  private readonly logger = new Logger('OrdersEvents');
-  private lifecycleInterval: NodeJS.Timer | null = null;
+export class OrdersEvents
+  implements OnModuleInit
+{
+  private readonly logger = new Logger(
+    'OrdersEvents',
+  );
+  private lifecycleInterval: NodeJS.Timer | null =
+    null;
   private readonly paymentsQueue = 'payments';
   private readonly ordersQueue = 'orders';
 
@@ -44,12 +53,21 @@ export class OrdersEvents implements OnModuleInit {
     await this.mq.assertQueue(this.ordersQueue);
 
     // Consumers
-    await this.mq.consume(this.paymentsQueue, (msg) => this.handlePaymentEvent(msg));
-    await this.mq.consume(this.ordersQueue, (msg) => this.handleOrderEvent(msg));
+    await this.mq.consume(
+      this.paymentsQueue,
+      (msg) => this.handlePaymentEvent(msg),
+    );
+    await this.mq.consume(
+      this.ordersQueue,
+      (msg) => this.handleOrderEvent(msg),
+    );
 
     // Lifecycle ticker to publish progression and cancellations
     if (!this.lifecycleInterval) {
-      this.lifecycleInterval = setInterval(() => this.tickOrders(), 10000);
+      this.lifecycleInterval = setInterval(
+        () => this.tickOrders(),
+        10000,
+      );
     }
   }
 
@@ -65,7 +83,9 @@ export class OrdersEvents implements OnModuleInit {
    */
   private async handlePaymentEvent(msg: any) {
     const { type, orderId } = msg;
-    this.logger.log(`payments <- ${type} for ${orderId}`);
+    this.logger.log(
+      `payments <- ${type} for ${orderId}`,
+    );
 
     await this.paymentsService.handlePaymentEvent(
       orderId,
@@ -74,10 +94,13 @@ export class OrdersEvents implements OnModuleInit {
         await this.updateOrderStatus(oid, status);
         // If order confirmed, also publish to orders queue
         if (status === OrderStatus.CONFIRMED) {
-          await this.mq.publish(this.ordersQueue, {
-            type: 'order.status.confirmed',
-            orderId: oid,
-          });
+          await this.mq.publish(
+            this.ordersQueue,
+            {
+              type: 'order.status.confirmed',
+              orderId: oid,
+            },
+          );
         }
       },
     );
@@ -99,21 +122,34 @@ export class OrdersEvents implements OnModuleInit {
    */
   private async handleOrderEvent(msg: any) {
     const { type, orderId } = msg;
-    this.logger.log(`orders <- ${type} for ${orderId}`);
+    this.logger.log(
+      `orders <- ${type} for ${orderId}`,
+    );
 
-    const statusMap: Record<string, OrderStatus> = {
-      'order.status.confirmed': OrderStatus.CONFIRMED,
-      'order.status.accepted': OrderStatus.ACCEPTED,
-      'order.status.preparing': OrderStatus.PREPARING,
-      'order.status.out_for_delivery': OrderStatus.OUT_FOR_DELIVERY,
-      'order.status.delivered': OrderStatus.DELIVERED,
-      'order.cancelled.random': OrderStatus.CANCELLED,
-      'order.cancelled.unpaid': OrderStatus.CANCELLED,
-    };
+    const statusMap: Record<string, OrderStatus> =
+      {
+        'order.status.confirmed':
+          OrderStatus.CONFIRMED,
+        'order.status.accepted':
+          OrderStatus.ACCEPTED,
+        'order.status.preparing':
+          OrderStatus.PREPARING,
+        'order.status.out_for_delivery':
+          OrderStatus.OUT_FOR_DELIVERY,
+        'order.status.delivered':
+          OrderStatus.DELIVERED,
+        'order.cancelled.random':
+          OrderStatus.CANCELLED,
+        'order.cancelled.unpaid':
+          OrderStatus.CANCELLED,
+      };
 
     const status = statusMap[type];
     if (status) {
-      await this.updateOrderStatus(orderId, status);
+      await this.updateOrderStatus(
+        orderId,
+        status,
+      );
     }
   }
 
@@ -139,7 +175,10 @@ export class OrdersEvents implements OnModuleInit {
   private async tickOrders() {
     // Cancel unpaid older than 60s
     const cutoff = new Date(Date.now() - 60000);
-    const unpaid = await this.ordersRepository.findUnpaidOrders(cutoff);
+    const unpaid =
+      await this.ordersRepository.findUnpaidOrders(
+        cutoff,
+      );
 
     for (const o of unpaid) {
       await this.mq.publish(this.ordersQueue, {
@@ -149,7 +188,8 @@ export class OrdersEvents implements OnModuleInit {
     }
 
     // Progress current orders or cancel 20%
-    const current = await this.ordersRepository.findActiveOrders();
+    const current =
+      await this.ordersRepository.findActiveOrders();
 
     for (const o of current) {
       if (Math.random() < 0.2) {
@@ -159,7 +199,9 @@ export class OrdersEvents implements OnModuleInit {
         });
         // Invalidate cache for user
         if (o.userId) {
-          await this.cache.onOrderChanged(o.userId);
+          await this.cache.onOrderChanged(
+            o.userId,
+          );
         }
         continue;
       }
@@ -167,7 +209,10 @@ export class OrdersEvents implements OnModuleInit {
       const next = this.nextStatus(o.orderStatus);
       if (next) {
         const type = `order.status.${next.toLowerCase()}`;
-        await this.mq.publish(this.ordersQueue, { type, orderId: o.id });
+        await this.mq.publish(this.ordersQueue, {
+          type,
+          orderId: o.id,
+        });
       }
     }
   }
@@ -182,7 +227,9 @@ export class OrdersEvents implements OnModuleInit {
    * @param s - Current order status
    * @returns Next status or null if terminal (DELIVERED/CANCELLED)
    */
-  private nextStatus(s: OrderStatus): OrderStatus | null {
+  private nextStatus(
+    s: OrderStatus,
+  ): OrderStatus | null {
     switch (s) {
       case OrderStatus.CONFIRMED:
         return OrderStatus.ACCEPTED;
@@ -209,13 +256,24 @@ export class OrdersEvents implements OnModuleInit {
    * @param orderId - The UUID of the order
    * @param status - New OrderStatus value
    */
-  private async updateOrderStatus(orderId: string, status: OrderStatus) {
-    const order = await this.ordersRepository.findById(orderId);
-    await this.ordersRepository.updateStatus(orderId, status);
+  private async updateOrderStatus(
+    orderId: string,
+    status: OrderStatus,
+  ) {
+    const order =
+      await this.ordersRepository.findById(
+        orderId,
+      );
+    await this.ordersRepository.updateStatus(
+      orderId,
+      status,
+    );
 
     // Invalidate user's orders cache
     if (order?.userId) {
-      await this.cache.onOrderChanged(order.userId);
+      await this.cache.onOrderChanged(
+        order.userId,
+      );
     }
   }
 }

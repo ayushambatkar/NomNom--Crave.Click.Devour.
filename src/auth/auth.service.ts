@@ -29,7 +29,7 @@ export class AuthService {
     private config: ConfigService,
     private userService: UsersService,
     private cartService: CartService,
-  ) { }
+  ) {}
   private HARD_CODED_OTP = '123456';
 
   /**
@@ -93,7 +93,9 @@ export class AuthService {
           user.id,
           phoneNumber,
         );
-      await this.cartService.ensureCartForUser(newUserId);
+      await this.cartService.ensureCartForUser(
+        newUserId,
+      );
       return this.signTokens(
         newUserId,
         phoneNumber,
@@ -219,9 +221,9 @@ export class AuthService {
     const refresh_token =
       await this.jwt.signAsync(refreshPayload, {
         expiresIn:
-          this.config.jwtRefreshExpiresIn ?? '30d',
-        secret:
-          this.config.jwtSecret,
+          this.config.jwtRefreshExpiresIn ??
+          '30d',
+        secret: this.config.jwtSecret,
         algorithm: 'HS256',
       });
     return {

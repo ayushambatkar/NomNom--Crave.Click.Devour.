@@ -18,7 +18,11 @@ import { PaymentsModule } from 'src/payments/payments.module';
     PaymentsModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrdersRepository, OrdersEvents],
+  providers: [
+    OrdersService,
+    OrdersRepository,
+    OrdersEvents,
+  ],
   exports: [OrdersService, OrdersRepository],
 })
 export class OrdersModule {}

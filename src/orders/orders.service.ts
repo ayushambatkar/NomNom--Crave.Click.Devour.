@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { CartService } from 'src/cart/cart.service';
 import { UsersService } from 'src/users/users.service';
 import { CacheService } from 'src/common/redis/cache.service';
@@ -15,7 +19,9 @@ interface OrderEventRecord {
 
 @Injectable()
 export class OrdersService {
-  private readonly logger = new Logger('OrdersService');
+  private readonly logger = new Logger(
+    'OrdersService',
+  );
   private events: OrderEventRecord[] = [];
 
   constructor(
@@ -48,56 +54,81 @@ export class OrdersService {
    */
   async checkout(userId: string, note?: string) {
     // Validate user is registered (not guest)
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { address: true },
-    });
-    if (!user) throw new BadRequestException('User not found');
+    const user =
+      await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { address: true },
+      });
+    if (!user)
+      throw new BadRequestException(
+        'User not found',
+      );
     if (!user.address) {
-      throw new BadRequestException('Address required before checkout');
+      throw new BadRequestException(
+        'Address required before checkout',
+      );
     }
 
     // Get cart
-    const cart = await this.cartService.getCart(userId);
-    if (!cart || !cart.items || cart.items.length === 0) {
-      throw new BadRequestException('Cart is empty');
+    const cart =
+      await this.cartService.getCart(userId);
+    if (
+      !cart ||
+      !cart.items ||
+      cart.items.length === 0
+    ) {
+      throw new BadRequestException(
+        'Cart is empty',
+      );
     }
 
     // Create Order with PENDING & INITIATED via repository
-    const order = await this.ordersRepository.create({
-      userId: userId,
-      restaurantId: cart.restaurant?.id ?? null,
-      amount: cart.total,
-      addressSnapshot: {
-        userAddress: user.address,
-        restaurantAddress: cart.restaurant?.id || null,
-        note: note || null,
-      },
-    });
+    const order =
+      await this.ordersRepository.create({
+        userId: userId,
+        restaurantId: cart.restaurant?.id ?? null,
+        amount: cart.total,
+        addressSnapshot: {
+          userAddress: user.address,
+          restaurantAddress:
+            cart.restaurant?.id || null,
+          note: note || null,
+        },
+      });
 
     // Snapshot items via repository
     for (const it of cart.items) {
-      await this.ordersRepository.createOrderItem({
-        orderId: order.id,
-        menuItemId: it.menuItem?.id ?? null,
-        nameSnapshot: it.menuItem?.name || 'Unknown',
-        unitPriceSnapshot: it.unitPrice,
-        quantity: it.quantity,
-      });
+      await this.ordersRepository.createOrderItem(
+        {
+          orderId: order.id,
+          menuItemId: it.menuItem?.id ?? null,
+          nameSnapshot:
+            it.menuItem?.name || 'Unknown',
+          unitPriceSnapshot: it.unitPrice,
+          quantity: it.quantity,
+        },
+      );
     }
 
     // Create payment record via payments service
-    await this.paymentsService.createPayment(order.id);
+    await this.paymentsService.createPayment(
+      order.id,
+    );
 
     await this.cartService.clear(userId);
 
     // Invalidate user's orders cache since new order created
     await this.cache.onOrderChanged(userId);
 
-    this.recordEvent(order.id, 'order.payment.initiated');
+    this.recordEvent(
+      order.id,
+      'order.payment.initiated',
+    );
 
     // Schedule payment flow via payments service
-    this.paymentsService.schedulePaymentFlow(order.id);
+    this.paymentsService.schedulePaymentFlow(
+      order.id,
+    );
 
     return this.buildInvoice(order.id);
   }
@@ -106,9 +137,20 @@ export class OrdersService {
    * Record an in-memory event for order tracking/debugging.
    * @private
    */
-  private recordEvent(orderId: string, type: string, data?: any) {
-    this.events.push({ orderId, type, timestamp: new Date(), data });
-    this.logger.log(`Event ${type} for order ${orderId}`);
+  private recordEvent(
+    orderId: string,
+    type: string,
+    data?: any,
+  ) {
+    this.events.push({
+      orderId,
+      type,
+      timestamp: new Date(),
+      data,
+    });
+    this.logger.log(
+      `Event ${type} for order ${orderId}`,
+    );
   }
 
   /**
@@ -127,8 +169,14 @@ export class OrdersService {
    * @throws BadRequestException if order not found
    */
   async buildInvoice(orderId: string) {
-    const order = await this.ordersRepository.findByIdWithDetails(orderId);
-    if (!order) throw new BadRequestException('Order not found');
+    const order =
+      await this.ordersRepository.findByIdWithDetails(
+        orderId,
+      );
+    if (!order)
+      throw new BadRequestException(
+        'Order not found',
+      );
     return {
       id: order.id,
       userId: order.userId,
@@ -163,17 +211,23 @@ export class OrdersService {
    */
   async listUserOrders(userId: string) {
     // Cache user orders list (short TTL since orders change frequently)
-    return this.cache.getUserOrders(userId, async () => {
-      const orders = await this.ordersRepository.findByUserId(userId);
-      return orders.map((o) => ({
-        id: o.id,
-        restaurantId: o.restaurantId,
-        amount: o.amount,
-        paymentStatus: o.paymentStatus,
-        orderStatus: o.orderStatus,
-        createdAt: o.createdAt,
-      }));
-    });
+    return this.cache.getUserOrders(
+      userId,
+      async () => {
+        const orders =
+          await this.ordersRepository.findByUserId(
+            userId,
+          );
+        return orders.map((o) => ({
+          id: o.id,
+          restaurantId: o.restaurantId,
+          amount: o.amount,
+          paymentStatus: o.paymentStatus,
+          orderStatus: o.orderStatus,
+          createdAt: o.createdAt,
+        }));
+      },
+    );
   }
 
   /**
@@ -189,6 +243,8 @@ export class OrdersService {
    * @returns Array of OrderEventRecord with type, timestamp, and optional data
    */
   getOrderEvents(orderId: string) {
-    return this.events.filter((e) => e.orderId === orderId);
+    return this.events.filter(
+      (e) => e.orderId === orderId,
+    );
   }
 }

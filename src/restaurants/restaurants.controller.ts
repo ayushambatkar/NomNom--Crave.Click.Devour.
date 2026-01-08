@@ -45,7 +45,9 @@ export class RestaurantsController {
 
   // Define static route before dynamic ':id' to avoid matching 'nearby' as an id
   @Get('nearby')
-  getNearbyRestaurants(@Query() query: NearbyQueryDto) {
+  getNearbyRestaurants(
+    @Query() query: NearbyQueryDto,
+  ) {
     const radiusKm = query.radiusKm ?? 5;
     return this.service.nearby(
       query.lat,
@@ -76,7 +78,10 @@ export class RestaurantsController {
     @SnakeBody(CreateMenuItemDto)
     dto: CreateMenuItemDto,
   ) {
-    return this.service.createMenuItem(restaurantId, dto);
+    return this.service.createMenuItem(
+      restaurantId,
+      dto,
+    );
   }
 
   @Get('/menu-items/:id')

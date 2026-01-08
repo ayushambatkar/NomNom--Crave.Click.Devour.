@@ -1,4 +1,7 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import {
+  Module,
+  OnModuleInit,
+} from '@nestjs/common';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
 import { SearchRegistry } from './search.registry';
@@ -19,7 +22,9 @@ import { PrismaModule } from 'src/prisma/prisma.module';
   ],
   exports: [SearchService, SearchRegistry],
 })
-export class SearchModule implements OnModuleInit {
+export class SearchModule
+  implements OnModuleInit
+{
   constructor(
     private readonly registry: SearchRegistry,
     private readonly restaurantStrategy: RestaurantSearchStrategy,
@@ -28,7 +33,9 @@ export class SearchModule implements OnModuleInit {
 
   onModuleInit() {
     // Register all search strategies on module initialization
-    this.registry.register(this.restaurantStrategy);
+    this.registry.register(
+      this.restaurantStrategy,
+    );
     this.registry.register(this.menuStrategy);
   }
 }

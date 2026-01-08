@@ -40,8 +40,7 @@ export class RedisService
   }
 
   private createClient(): IORedisClient {
-    const url =
-      this.config.redisUrl;
+    const url = this.config.redisUrl;
     if (url) {
       this.logger.log(
         `Initializing Redis with URL: ${url}`,
@@ -49,7 +48,6 @@ export class RedisService
       return new IORedis(
         url,
         this.getDefaultOptions(),
-        
       );
     }
 
@@ -57,8 +55,7 @@ export class RedisService
     const port = this.config.redisPort;
     const password = this.config.redisPassword;
 
-    const db =
-      this.config.redisDb;
+    const db = this.config.redisDb;
 
     const options: RedisOptions = {
       host,

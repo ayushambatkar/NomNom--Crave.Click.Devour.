@@ -10,12 +10,12 @@ import { ConfigService } from './common/config/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Get ConfigService
   const configService = app.get(ConfigService);
   const port = configService.port;
   const nodeEnv = configService.nodeEnv;
-  
+
   // First convert snake_case inputs to camelCase, then validate DTOs
   app.useGlobalPipes(
     new SnakeToCamelPipe(),

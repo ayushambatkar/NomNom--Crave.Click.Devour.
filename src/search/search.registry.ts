@@ -1,4 +1,7 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+} from '@nestjs/common';
 import { ISearchStrategy } from './interfaces';
 
 /**
@@ -7,7 +10,10 @@ import { ISearchStrategy } from './interfaces';
  */
 @Injectable()
 export class SearchRegistry {
-  private readonly strategies = new Map<string, ISearchStrategy>();
+  private readonly strategies = new Map<
+    string,
+    ISearchStrategy
+  >();
 
   register(strategy: ISearchStrategy): void {
     this.strategies.set(strategy.type, strategy);
@@ -16,7 +22,9 @@ export class SearchRegistry {
   get(type: string): ISearchStrategy {
     const strategy = this.strategies.get(type);
     if (!strategy) {
-      const availableTypes = Array.from(this.strategies.keys());
+      const availableTypes = Array.from(
+        this.strategies.keys(),
+      );
       throw new BadRequestException(
         `Unknown search type: '${type}'. Available types: ${availableTypes.join(', ')}`,
       );

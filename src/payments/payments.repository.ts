@@ -29,7 +29,10 @@ export class PaymentsRepository {
     });
   }
 
-  async updateStatus(orderId: string, status: PaymentStatus) {
+  async updateStatus(
+    orderId: string,
+    status: PaymentStatus,
+  ) {
     // Update payment status
     await this.prisma.payment.update({
       where: { orderId },

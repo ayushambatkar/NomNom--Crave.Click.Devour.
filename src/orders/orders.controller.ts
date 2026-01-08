@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CheckoutDto } from './dto/checkout.dto';
 import { JwtGuard } from 'src/auth/guard/jwt.guard';
@@ -8,14 +15,19 @@ import { UserEntity } from 'src/users/user.entity';
 @Controller('orders')
 @UseGuards(JwtGuard)
 export class OrdersController {
-  constructor(private readonly orders: OrdersService) {}
+  constructor(
+    private readonly orders: OrdersService,
+  ) {}
 
   @Post('checkout')
   async checkout(
     @GetUser() user: UserEntity,
     @Body() dto: CheckoutDto,
   ) {
-    return this.orders.checkout(user.id, dto.note);
+    return this.orders.checkout(
+      user.id,
+      dto.note,
+    );
   }
 
   @Get()
@@ -27,5 +39,4 @@ export class OrdersController {
   async get(@Param('id') id: string) {
     return this.orders.buildInvoice(id);
   }
-
 }

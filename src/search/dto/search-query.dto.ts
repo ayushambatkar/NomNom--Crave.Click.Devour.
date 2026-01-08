@@ -6,7 +6,10 @@ import {
   Max,
   IsObject,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import {
+  Transform,
+  Type,
+} from 'class-transformer';
 
 export class SearchQueryDto {
   @IsString()

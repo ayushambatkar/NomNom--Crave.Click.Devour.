@@ -13,25 +13,43 @@ export class RestaurantSearchStrategy
 {
   readonly type = 'restaurant';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+  ) {}
 
   async search(
     params: SearchParams,
   ): Promise<SearchResult<Restaurant>> {
-    const { query, page = 1, limit = 10, filters } = params;
+    const {
+      query,
+      page = 1,
+      limit = 10,
+      filters,
+    } = params;
     const skip = (page - 1) * limit;
 
     const where = {
       OR: [
-        { name: { contains: query, mode: 'insensitive' as const } },
         {
-          address: {
-            city: { contains: query, mode: 'insensitive' as const },
+          name: {
+            contains: query,
+            mode: 'insensitive' as const,
           },
         },
         {
           address: {
-            landmark: { contains: query, mode: 'insensitive' as const },
+            city: {
+              contains: query,
+              mode: 'insensitive' as const,
+            },
+          },
+        },
+        {
+          address: {
+            landmark: {
+              contains: query,
+              mode: 'insensitive' as const,
+            },
           },
         },
       ],
