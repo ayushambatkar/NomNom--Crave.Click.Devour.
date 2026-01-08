@@ -1,0 +1,13 @@
+# .ebignore
+docker-compose.yaml
+docker-compose.yml
+.env
+.env.development
+.env.uat
+.git
+.gitignore
+node_modules
+coverage
+test
+src
+*.md
