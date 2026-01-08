@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from 'src/common/config/config.service';
 import { PassportStrategy } from '@nestjs/passport';
 import {
   ExtractJwt,
@@ -21,10 +21,22 @@ export class JwtStrategy extends PassportStrategy(
     super({
       jwtFromRequest:
         ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: config.get('JWT_SECRET'),
+      secretOrKey: config.jwtSecret,
     });
   }
 
+  /**
+   * Override of the strategy's validate method.
+   *
+   * Validates the decoded JWT payload and resolves to a user-like object or null.
+   * If payload.isGuest is true, attempts to look up a guest record via guestUserService;
+   * if found, returns a minimal guest representation ({ id, isGuest: true, phoneNumber: null }).
+   * Otherwise, resolves to the persisted user record fetched from prismaService.user.findUnique.
+   *
+   * @override
+   * @param payload - Decoded JWT payload; expected to include `sub` (user id) and optional `isGuest` flag.
+   * @returns A Promise that resolves to the user record, a guest representation, or null if no user/guest is found.
+   */
   async validate(payload: any) {
     if (payload.isGuest) {
       const g =

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from 'src/common/config/config.service';
 import { UsersService } from 'src/users/users.service';
 import { CartService } from 'src/cart/cart.service';
 import { User } from '@prisma/client';
@@ -29,7 +29,7 @@ export class AuthService {
     private config: ConfigService,
     private userService: UsersService,
     private cartService: CartService,
-  ) {}
+  ) { }
   private HARD_CODED_OTP = '123456';
 
   /**
@@ -156,7 +156,7 @@ export class AuthService {
       const payload = await this.jwt.verifyAsync(
         refreshToken,
         {
-          secret: this.config.get('JWT_SECRET'),
+          secret: this.config.jwtSecret,
         },
       );
       return this.signTokens(
@@ -219,12 +219,9 @@ export class AuthService {
     const refresh_token =
       await this.jwt.signAsync(refreshPayload, {
         expiresIn:
-          this.config.get(
-            'JWT_REFRESH_EXPIRES_IN',
-          ) ?? '30d',
+          this.config.jwtRefreshExpiresIn ?? '30d',
         secret:
-          this.config.get('JWT_REFRESH_SECRET') ??
-          this.config.get('JWT_SECRET'),
+          this.config.jwtSecret,
         algorithm: 'HS256',
       });
     return {

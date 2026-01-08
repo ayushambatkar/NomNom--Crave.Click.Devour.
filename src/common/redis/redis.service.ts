@@ -3,7 +3,7 @@ import {
   Logger,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from '../config/config.service';
 import IORedis, {
   Redis as IORedisClient,
   RedisOptions,
@@ -41,7 +41,7 @@ export class RedisService
 
   private createClient(): IORedisClient {
     const url =
-      this.config.get<string>('REDIS_URL');
+      this.config.redisUrl;
     if (url) {
       this.logger.log(
         `Initializing Redis with URL: ${url}`,
@@ -49,34 +49,22 @@ export class RedisService
       return new IORedis(
         url,
         this.getDefaultOptions(),
+        
       );
     }
 
-    const host = this.config.get<string>(
-      'REDIS_HOST',
-      '127.0.0.1',
-    );
-    const port = this.config.get<number>(
-      'REDIS_PORT',
-      6379,
-    );
-    const password = this.config.get<string>(
-      'REDIS_PASSWORD',
-    );
+    const host = this.config.redisHost;
+    const port = this.config.redisPort;
+    const password = this.config.redisPassword;
+
     const db =
-      this.config.get<number>('REDIS_DB');
+      this.config.redisDb;
 
     const options: RedisOptions = {
       host,
-      port:
-        typeof port === 'string'
-          ? parseInt(port, 10)
-          : port,
-      password: password || undefined,
-      db:
-        typeof db === 'string'
-          ? parseInt(db as unknown as string, 10)
-          : db,
+      port,
+      password,
+      db,
       ...this.getDefaultOptions(),
     };
 
