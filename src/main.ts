@@ -31,7 +31,9 @@ async function bootstrap() {
     ),
     new SnakeCaseInterceptor(),
   );
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: ['/'],
+  });
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
