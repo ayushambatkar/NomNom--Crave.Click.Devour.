@@ -15,11 +15,11 @@ enum Environment {
     NestConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env.${process.env.NODE_ENV || Environment.Development}`,
+      envFilePath: process.env.NODE_ENV === "production" ? undefined : `.env.${process.env.NODE_ENV || Environment.Development}`,
       cache: true,
     }),
   ],
   providers: [ConfigService],
   exports: [ConfigService],
 })
-export class ConfigModule {}
+export class ConfigModule { }
