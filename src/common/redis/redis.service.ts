@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '../config/config.service';
@@ -8,18 +7,17 @@ import IORedis, {
   Redis as IORedisClient,
   RedisOptions,
 } from 'ioredis';
+import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class RedisService
   implements OnModuleDestroy
 {
-  private readonly logger = new Logger(
-    RedisService.name,
-  );
   private client: IORedisClient;
 
   constructor(
     private readonly config: ConfigService,
+    private logger: LoggerService,
   ) {
     this.client = this.createClient();
 

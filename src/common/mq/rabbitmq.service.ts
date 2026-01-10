@@ -5,18 +5,17 @@ import {
 } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { ConfigService } from '../config/config.service';
+import { LoggerService } from '../logger/logger.service';
+import e from 'express';
 
 @Injectable()
 export class RabbitMQService
-  implements OnModuleDestroy, OnModuleInit
-{
+  implements OnModuleDestroy, OnModuleInit {
+
   private conn: amqp.ChannelModel | null = null;
   private channel: amqp.Channel | null = null;
-  private config: ConfigService;
 
-  constructor(config: ConfigService) {
-    this.config = config;
-  }
+  constructor(private config: ConfigService, private logging: LoggerService) { }
 
   async onModuleInit() {
     await this.ensureChannel();
@@ -25,7 +24,17 @@ export class RabbitMQService
   private async ensureChannel() {
     if (this.channel) return this.channel;
     const url = this.config.rabbitmqUrl;
-    this.conn = await amqp.connect(url);
+    this.conn = await amqp.connect(url).then((conn) => {
+      this.logging.log('Connected to RabbitMQ: ' + url);
+      return conn;
+    }).catch((error) => {
+      this.logging.error('Failed to connect to RabbitMQ: ' + url + 'reason: ' + error.message);
+      return null;
+    });
+    if (!this.conn) {
+      this.logging.error('Failed to connect to RabbitMQ, reason: conn is null' + url);
+      throw new Error('Failed to connect to RabbitMQ , reason: conn is null' + url);
+    }
     this.channel =
       await this.conn.createChannel();
     return this.channel;
