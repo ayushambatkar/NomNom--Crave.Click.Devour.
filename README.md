@@ -1,5 +1,7 @@
 # NomNom -- Crave. Click. Devour.
 
+<a href="http://35.154.25.12/"> Production </a>
+
 A food delivery service prototype built using **NestJS**, **Prisma**, **PostgreSQL**, **Redis**, and **RabbitMQ**.
 
 ## Features
