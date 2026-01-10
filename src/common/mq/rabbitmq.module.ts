@@ -8,4 +8,4 @@ import { LoggerService } from '../logger/logger.service';
   exports: [RabbitMQService],
   imports: [LoggerService],
 })
-export class RabbitMQModule { }
+export class RabbitMQModule {}

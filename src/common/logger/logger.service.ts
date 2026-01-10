@@ -11,7 +11,8 @@ import {
 
 @Injectable()
 export class LoggerService
-  implements NestMiddleware {
+  implements NestMiddleware
+{
   private logger = new Logger('HTTP');
   use(
     req: Request,
