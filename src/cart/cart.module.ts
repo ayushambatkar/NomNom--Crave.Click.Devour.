@@ -6,6 +6,7 @@ import { UsersModule } from 'src/users/users.module';
 import { CartRepository } from './cart.repository';
 import { RedisModule } from 'src/common/redis/redis.module';
 import { RedisService } from 'src/common/redis/redis.service';
+import { LoggerService } from 'src/common/logger/logger.service';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RedisService } from 'src/common/redis/redis.service';
     CartService,
     CartRepository,
     RedisService,
+    LoggerService,
   ],
   exports: [CartService],
 })

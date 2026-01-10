@@ -9,6 +9,7 @@ import { UsersService } from 'src/users/users.service';
 import { CartModule } from 'src/cart/cart.module';
 import { RedisModule } from 'src/common/redis/redis.module';
 import { RedisService } from 'src/common/redis/redis.service';
+import { LoggerService } from 'src/common/logger/logger.service';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RedisService } from 'src/common/redis/redis.service';
     AuthService,
     JwtStrategy,
     RedisService,
+    LoggerService
   ],
 })
 export class AuthModule {}

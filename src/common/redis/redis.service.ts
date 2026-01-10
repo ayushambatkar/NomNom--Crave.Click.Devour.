@@ -17,7 +17,7 @@ export class RedisService
 
   constructor(
     private readonly config: ConfigService,
-    private logger: LoggerService,
+    private readonly logger: LoggerService,
   ) {
     this.client = this.createClient();
 
