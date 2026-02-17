@@ -6,20 +6,12 @@ A food delivery service built with **NestJS monorepo**, featuring **microservice
 
 ## Features
 
-- 🔐 **Phone number + OTP authentication** (hardcoded OTP: `123456` for testing)
-- 👤 **Guest login** with seamless upgrade to registered user
-- 🔑 **Role-based access control** (CUSTOMER, RESTAURANT_OWNER, ADMIN)
-- 🍽️ **Restaurants** with address, geo-coordinates, opening/closing times, handling fees, and packaging charges
-- 👥 **Restaurant ownership** - Owners manage their restaurants and menus
-- 📍 **Location-based restaurant discovery** with Haversine distance calculation
-- 🍕 **Menu items** per restaurant with availability status
-- 🛒 **Shopping cart** - one cart per user; items from one restaurant only; auto-resets on cross-restaurant add
-- 💰 **Dynamic cart totals** including subtotal, handling fee, packaging charges, delivery fee (₹10/km), and tax
-- 📦 **Orders & Checkout** with order lifecycle management
-- 💳 **Payment Gateway microservice** - S2S communication, webhook notifications, ledger system
-- ⚡ **Redis caching** for restaurants, menus, and user orders
-- 🐰 **RabbitMQ** for async payment and order status updates
-- 🏗️ **Monorepo architecture** - Separate apps (API + Payment Gateway) with shared libraries
+- **Authentication & Authorization** - OTP-based login, guest users with upgrade path, JWT with refresh tokens, RBAC (Customer/Owner/Admin)
+- **Restaurant Management** - Ownership model, geo-based discovery (Haversine), menu management
+- **Shopping & Orders** - Single-restaurant cart, dynamic pricing (distance-based delivery, tax, fees), order lifecycle tracking
+- **Payment Gateway** - Microservice architecture with S2S communication, webhooks, automated ledger entries (80/15/5 revenue split)
+- **Performance** - Redis caching layer, RabbitMQ for async operations
+- **Architecture** - NestJS monorepo with shared libraries, dual PostgreSQL databases
 
 ---
 
@@ -88,332 +80,30 @@ flowchart TB
 
 ---
 
-## Order & Payment Flow
+## What's Inside
 
-> **Note:** Payment processing now uses a dedicated Payment Gateway microservice. See [PAYMENT_INTEGRATION.md](PAYMENT_INTEGRATION.md) for detailed S2S flow.
+### API Service (Port 3000)
+- **Authentication** - OTP-based login, guest users, JWT with refresh tokens
+- **Users** - Profile management, RBAC (Customer/Owner/Admin)
+- **Restaurants** - CRUD operations with ownership, geo-based search
+- **Menu** - Items management with availability tracking
+- **Cart** - Single-restaurant cart with dynamic pricing (delivery, tax, fees)
+- **Orders** - Checkout, lifecycle management (PENDING → DELIVERED)
+- **Search** - Restaurant and menu discovery
+- **Payments** - Integration with payment gateway microservice
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant API as NestJS API
-    participant PG as Payment Gateway
-    participant MQ as RabbitMQ
+### Payment Gateway (Port 3001)
+- **Payment Processing** - Initiation, status tracking, simulation
+- **Ledger System** - Revenue splits (80% restaurant, 15% delivery, 5% platform)
+- **Webhooks** - Notifies API of payment status changes
+- **Transactions** - Complete payment history
 
-    U->>API: POST /orders/checkout
-    API->>API: Create Order (PENDING)
-    API->>PG: POST /payments/initiate
-    PG->>PG: Create Payment + Transaction
-    PG-->>API: Payment ID & URL
-    API->>API: Store gateway payment ID
-    API-->>U: Return invoice
+### Shared Libraries
+- **@app/common** - Logger, config management, utilities
+- **@app/redis** - Caching service (restaurants, menus, orders)
+- **@app/rabbitmq** - Message queue for async operations
 
-    Note over PG: After 15 seconds (simulation)
-    PG->>PG: Process payment (80% success)
-    PG->>PG: Create ledger entries
-    PG->>API: POST /webhooks/payment
-    API->>API: Update Payment status
-    API->>MQ: Publish order.confirmed/cancelled
-    MQ->>API: Update Order status
-
-    Note over API: Every 10s lifecycle tick
-    loop Order Progression
-        API->>API: CONFIRMED → ACCEPTED → PREPARING → OUT_FOR_DELIVERY → DELIVERED
-    end
-```
-
----
-
-## Order Status Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> PENDING: Checkout
-    PENDING --> CONFIRMED: Payment Success
-    PENDING --> CANCELLED: Payment Failed / Timeout
-    
-    CONFIRMED --> ACCEPTED: Restaurant accepts
-    ACCEPTED --> PREPARING: Kitchen starts
-    PREPARING --> OUT_FOR_DELIVERY: Ready for pickup
-    OUT_FOR_DELIVERY --> DELIVERED: Delivered
-    
-    CONFIRMED --> CANCELLED: Random 20%
-    ACCEPTED --> CANCELLED: Random 20%
-    PREPARING --> CANCELLED: Random 20%
-    
-    DELIVERED --> [*]
-    CANCELLED --> [*]
-```
-
----
-
-## Project Structure
-
-```
-src/
-├── auth/                    # Authentication module
-│   ├── auth.controller.ts   # Auth endpoints (OTP, guest, refresh)
-│   ├── auth.service.ts      # Auth business logic
-│   ├── decorator/           # Custom decorators (@GetUser)
-│   ├── dto/                 # Request DTOs
-│   ├── guard/               # JWT guard
-│   └── strategy/            # Passport JWT strategy
-├── cart/                    # Shopping cart module
-│   ├── cart.controller.ts   # Cart endpoints
-│   ├── cart.service.ts      # Cart business logic
-│   ├── cart.repository.ts   # Database operations
-│   ├── dto/                 # Request DTOs
-│   ├── entities/            # Cart view entities
-│   └── util/                # Cart totals calculation
-├── common/                  # Shared utilities
-│   ├── decorators/          # @SnakeBody decorator
-│   ├── dto/                 # Shared DTOs (Address)
-│   ├── logger/              # Logging service
-│   ├── mq/                  # RabbitMQ service
-│   └── redis/               # Redis & Cache services
-├── orders/                  # Orders module
-│   ├── orders.controller.ts # Order endpoints
-│   ├── orders.service.ts    # Order business logic
-│   ├── orders.events.ts     # MQ consumers & lifecycle
-│   └── dto/                 # Request DTOs
-├── prisma/                  # Prisma database module
-├── restaurants/             # Restaurants module
-│   ├── restaurants.controller.ts
-│   ├── restaurants.service.ts
-│   ├── restaurant.repository.ts
-│   └── dto/                 # Request DTOs
-└── users/                   # Users module
-    ├── users.controller.ts
-    ├── users.service.ts
-    ├── user.repository.ts
-    ├── guest-user.service.ts  # Redis-based guest users
-    ├── guest-user.repository.ts
-    └── dto/                 # Request DTOs
-```
-
----
-
-## API Documentation
-
-**Base URL:** `/api/v1`
-
-All endpoints (except guest login) require `Authorization: Bearer <token>` header.
-
-### Authentication
-
-| Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| `GET` | `/auth/guest` | - | Get guest access token |
-| `POST` | `/auth/request-otp` | `{ "phone_number": "+91..." }` | Request OTP for phone |
-| `POST` | `/auth/resend-otp` | `{ "phone_number": "+91..." }` | Resend OTP |
-| `POST` | `/auth/verify-otp` | `{ "phone_number": "+91...", "otp": "123456" }` | Verify OTP & get tokens |
-| `POST` | `/auth/refresh` | `{ "refresh_token": "..." }` | Refresh access token |
-
-**Response (verify-otp/guest):**
-```json
-{
-    "user_id": "uuid",
-    "access_token": "jwt...",
-    "refresh_token": "jwt..."
-}
-```
-
----
-
-### Users
-
-| Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| `GET` | `/users/me` | - | Get current user profile |
-| `PUT` | `/users/me` | `{ "name": "...", "email": "...", "address": {...} }` | Update profile |
-| `PATCH` | `/users/address` | `{ "line1": "...", "city": "...", "latitude": 12.97, "longitude": 77.59 }` | Update address (works for guest & registered) |
-
-**Update Address Body:**
-```json
-{
-    "line1": "123 Main Street",
-    "city": "Bengaluru",
-    "country": "India",
-    "latitude": 12.9716,
-    "longitude": 77.5946
-}
-```
-
----
-
-### Restaurants
-
-| Method | Endpoint | Query Params | Description |
-|--------|----------|--------------|-------------|
-| `GET` | `/restaurants` | - | List restaurants (based on user location) |
-| `GET` | `/restaurants/nearby` | `lat`, `lng`, `radius_km` | Find restaurants within radius |
-| `GET` | `/restaurants/:id` | - | Get restaurant details |
-| `POST` | `/restaurants` | Body (see below) | Create restaurant |
-| `PUT` | `/restaurants/:id` | Body | Update restaurant |
-| `GET` | `/restaurants/:id/menu-items` | - | List menu items (cached) |
-| `POST` | `/restaurants/:id/menu-items` | Body | Add menu item |
-
-**Create Restaurant Body:**
-```json
-{
-    "name": "Test Kitchen",
-    "opening_time": "09:00",
-    "closing_time": "22:00",
-    "handling_fee": 15,
-    "packaging_charges": 10,
-    "address": {
-        "line1": "123 Main St",
-        "city": "Bengaluru",
-        "latitude": 12.9716,
-        "longitude": 77.5946
-    }
-}
-```
-
-**Nearby Response:**
-```json
-[
-    {
-        "id": "uuid",
-        "name": "Kebab Kitchen",
-        "opening_time": "10:16",
-        "closing_time": "22:53",
-        "handling_fee": 14.42,
-        "packaging_charges": 5.53,
-        "address": {
-            "id": "uuid",
-            "line1": "61 Main Street",
-            "city": "Bengaluru",
-            "latitude": 12.9800,
-            "longitude": 77.5900
-        },
-        "distance_km": 3.12
-    }
-]
-```
-
-**Add Menu Item Body:**
-```json
-{
-    "name": "Paneer Tikka",
-    "description": "Spicy cottage cheese cubes",
-    "price": 180,
-    "is_available": true
-}
-```
-
----
-
-### Cart
-
-| Method | Endpoint | Body/Params | Description |
-|--------|----------|-------------|-------------|
-| `GET` | `/cart` | - | Get current cart with totals |
-| `POST` | `/cart/add` | `{ "menu_item_id": "uuid", "quantity": 2 }` | Add item to cart |
-| `GET` | `/cart/decrement` | `?menu_item_id=uuid&quantity=1` | Decrement item quantity |
-| `POST` | `/cart/clear` | - | Clear entire cart |
-| `DELETE` | `/cart/item/:menuItemId` | - | Remove item from cart |
-
-**Cart Response:**
-```json
-{
-    "id": "uuid",
-    "user_id": "uuid",
-    "restaurant": {
-        "id": "uuid",
-        "name": "Kebab Kitchen"
-    },
-    "items": [
-        {
-            "id": "uuid",
-            "menu_item": {
-                "id": "uuid",
-                "name": "Paneer Tikka",
-                "price": 180
-            },
-            "quantity": 2,
-            "unit_price": 180
-        }
-    ],
-    "subtotal": 360,
-    "handling_fee": 14.42,
-    "packaging_charges": 5.53,
-    "delivery_charges": 31.20,
-    "tax_amount": 18,
-    "total": 429.15
-}
-```
-
-**Cart Totals Calculation:**
-- `subtotal` = Σ(item.unitPrice × item.quantity)
-- `handlingFee` = restaurant.handlingFee
-- `packagingCharges` = restaurant.packagingCharges
-- `deliveryCharges` = Math.ceil(distanceKm) × PER_KM_DELIVERY_RATE (default ₹10/km)
-- `taxAmount` = subtotal × TAX_RATE (default 5%)
-- `total` = subtotal + handlingFee + packagingCharges + deliveryCharges + taxAmount
-
----
-
-### Orders
-
-| Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| `POST` | `/orders/checkout` | `{ "note": "No onions" }` | Create order from cart |
-| `GET` | `/orders` | - | List user's orders (cached) |
-| `GET` | `/orders/:id` | - | Get order invoice |
-| `GET` | `/orders/:id/events` | - | Get order event history |
-
-**Checkout Response (Invoice):**
-```json
-{
-    "id": "uuid",
-    "user_id": "uuid",
-    "restaurant_id": "uuid",
-    "amount": 429.15,
-    "payment_status": "INITIATED",
-    "order_status": "PENDING",
-    "address_snapshot": {
-        "user_address": {...},
-        "restaurant_address": "uuid",
-        "note": "No onions"
-    },
-    "items": [
-        {
-            "id": "uuid",
-            "name": "Paneer Tikka",
-            "unit_price": 180,
-            "quantity": 2
-        }
-    ],
-    "payment": {
-        "id": "uuid",
-        "provider": "DUMMY",
-        "status": "INITIATED",
-        "transaction_id": "txn_abc123"
-    },
-    "created_at": "2025-12-10T10:00:00Z"
-}
-```
-
-**Order Statuses:** `PENDING` → `CONFIRMED` → `ACCEPTED` → `PREPARING` → `OUT_FOR_DELIVERY` → `DELIVERED` | `CANCELLED`
-
-**Payment Statuses:** `INITIATED` → `PENDING` → `SUCCESS` | `FAILED`
-
----
-
-## Caching Strategy
-
-Redis is used to cache frequently accessed data:
-
-| Key Pattern | Data | TTL | Invalidation |
-|-------------|------|-----|--------------|
-| `restaurant:{id}` | Single restaurant | 1 hour | On restaurant update |
-| `restaurant:{id}:menu` | Menu items | 30 min | On menu item add/update |
-| `nearby:{lat}:{lng}:{radius}` | Nearby restaurants | 5 min | On restaurant create/update |
-| `user:{userId}:orders` | User's order list | 2 min | On order create/update |
-| `guest:{userId}` | Guest user data | 7 days | On upgrade to registered |
-| `cart:guest:{userId}` | Guest cart | 7 days | On cart operations |
-
-Coordinates are rounded to 2 decimal places (~1km precision) for cache grouping.
+> **See [PAYMENT_INTEGRATION.md](PAYMENT_INTEGRATION.md) for S2S payment flow details.**
 
 ---
 
