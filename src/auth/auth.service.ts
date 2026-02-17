@@ -96,18 +96,23 @@ export class AuthService {
       await this.cartService.ensureCartForUser(
         newUserId,
       );
+      // Fetch the newly created user to get their role
+      const newUser = await this.userService.findById(newUserId);
       return this.signTokens(
         newUserId,
         phoneNumber,
         false,
+        newUser?.role,
       );
     }
 
-    // already registered
+    // already registered - fetch full user to get role
+    const existingUser = await this.userService.findById(user.id);
     return this.signTokens(
       user.id,
       phoneNumber,
       false,
+      existingUser?.role,
     );
   }
 
@@ -161,9 +166,13 @@ export class AuthService {
           secret: this.config.jwtSecret,
         },
       );
+      // Fetch user to get current role (in case it changed)
+      const user = await this.userService.findById(payload.sub);
       return this.signTokens(
         payload.sub,
         payload.phoneNumber,
+        payload.isGuest,
+        user?.role,
       );
     } catch (e) {
       throw new ForbiddenException(
@@ -196,16 +205,19 @@ export class AuthService {
     userId: string,
     phoneNumber?: string,
     isGuest: boolean = false,
+    role?: string,
   ) {
     const accessPayload = {
       sub: userId,
       phoneNumber,
       isGuest,
+      role,
     };
     const refreshPayload = {
       sub: userId,
       phoneNumber,
       isGuest,
+      role,
       type: 'refresh',
     };
     const access_token = await this.jwt.signAsync(

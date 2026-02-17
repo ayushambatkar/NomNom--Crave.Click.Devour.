@@ -247,4 +247,12 @@ export class OrdersService {
       (e) => e.orderId === orderId,
     );
   }
+
+  async getOrderStatus(orderId: string) {
+    return {
+      status: this.events.filter(
+        (e) => e.orderId === orderId,
+      ).findLast((e) => e)?.type || null,
+    };
+  } 
 }

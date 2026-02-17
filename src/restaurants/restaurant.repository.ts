@@ -15,7 +15,7 @@ export class RestaurantRepository {
     private readonly prisma: PrismaService,
   ) {}
 
-  create(dto: CreateRestaurantDto) {
+  create(dto: CreateRestaurantDto, ownerId: string) {
     const {
       name,
       openingTime,
@@ -60,6 +60,7 @@ export class RestaurantRepository {
         closingTime,
         handlingFee,
         packagingCharges,
+        ownerId,
         address: {
           create: {
             line1,

@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import { RestaurantsService } from './restaurants.service';
 import {
   CreateRestaurantDto,
@@ -18,8 +19,8 @@ import {
   UpdateRestaurantDto,
 } from './dto';
 import { SnakeBody } from 'src/common/decorators/snake-body.decorator';
-import { JwtGuard } from 'src/auth/guard';
-import { GetUser } from 'src/auth/decorator/get-user.decorator';
+import { JwtGuard, RolesGuard } from 'src/auth/guard';
+import { GetUser, Roles } from 'src/auth/decorator';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @UseGuards(JwtGuard)
@@ -31,11 +32,14 @@ export class RestaurantsController {
   ) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RESTAURANT_OWNER, UserRole.ADMIN)
   create(
+    @GetUser() user: User,
     @SnakeBody(CreateRestaurantDto)
     dto: CreateRestaurantDto,
   ) {
-    return this.service.create(dto);
+    return this.service.create(dto, user.id);
   }
 
   @Get()
@@ -64,16 +68,22 @@ export class RestaurantsController {
   }
 
   @Put(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RESTAURANT_OWNER, UserRole.ADMIN)
   updateRestaurantMeta(
+    @GetUser() user: User,
     @Param('id', new ParseUUIDPipe()) id: string,
     @SnakeBody(UpdateRestaurantDto)
     dto: UpdateRestaurantDto,
   ) {
-    return this.service.update(id, dto);
+    return this.service.update(id, dto, user);
   }
 
   @Post('/menu-items/:restaurantId')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RESTAURANT_OWNER, UserRole.ADMIN)
   createMenuItem(
+    @GetUser() user: User,
     @Param('restaurantId') restaurantId: string,
     @SnakeBody(CreateMenuItemDto)
     dto: CreateMenuItemDto,
@@ -81,6 +91,7 @@ export class RestaurantsController {
     return this.service.createMenuItem(
       restaurantId,
       dto,
+      user,
     );
   }
 

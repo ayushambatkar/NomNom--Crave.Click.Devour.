@@ -13,6 +13,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  CUSTOMER
+  RESTAURANT_OWNER
+  ADMIN
+}
+
 model User {
   id          String   @id @default(uuid()) @db.Uuid
   phoneNumber String?  @unique
@@ -20,11 +26,13 @@ model User {
   addressId   String?  @unique @db.Uuid
   email       String?  @unique
   name        String?
+  role        UserRole @default(CUSTOMER)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   carts Cart[]
   orders Order[]
+  ownedRestaurants Restaurant[]
 
   @@map("users")
 }
@@ -34,6 +42,8 @@ model Restaurant {
   name             String
   address          Address @relation("RestaurantAddress", fields: [addressId], references: [id])
   addressId        String  @unique @db.Uuid
+  owner            User    @relation(fields: [ownerId], references: [id])
+  ownerId          String  @db.Uuid
   openingTime      String // HH:mm
   closingTime      String // HH:mm
   handlingFee      Decimal @default(0) @db.Decimal(10, 2)

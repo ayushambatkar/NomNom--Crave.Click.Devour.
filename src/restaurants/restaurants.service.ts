@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -7,6 +8,7 @@ import {
 import type {
   Restaurant,
   User,
+  UserRole,
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RestaurantRepository } from './restaurant.repository';
@@ -39,14 +41,16 @@ export class RestaurantsService {
    *
    * @description
    * - Creates restaurant with address via repository
+   * - Sets the owner to the current user
    * - Invalidates all nearby cache patterns (new restaurant affects search results)
    *
    * @param dto - Restaurant creation data including name, times, fees, address
+   * @param ownerId - ID of the user creating the restaurant
    * @returns Created restaurant with address
    */
-  async create(dto: CreateRestaurantDto) {
+  async create(dto: CreateRestaurantDto, ownerId: string) {
     const restaurant =
-      await this.repo.create(dto);
+      await this.repo.create(dto, ownerId);
     // Invalidate nearby caches since new restaurant added
     await this.cache.invalidatePattern(
       'nearby:*',
@@ -133,23 +137,35 @@ export class RestaurantsService {
    * Update restaurant details.
    *
    * @description
+   * - Validates user is owner or admin
    * - Updates restaurant via repository
    * - Invalidates caches: restaurant:{id}, restaurant:{id}:menu, nearby:*
    *
    * @param id - Restaurant UUID
    * @param dto - Fields to update
+   * @param user - Current user making the request
    * @returns Updated restaurant
    * @throws NotFoundException if not found
+   * @throws ForbiddenException if user is not owner or admin
    */
   async update(
     id: string,
     dto: UpdateRestaurantDto,
+    user: User,
   ) {
     const exists = await this.repo.findById(id);
     if (!exists)
       throw new NotFoundException(
         'Restaurant not found',
       );
+    
+    // Check if user is owner or admin
+    if (user.role !== 'ADMIN' && exists.ownerId !== user.id) {
+      throw new ForbiddenException(
+        'You can only update your own restaurants',
+      );
+    }
+    
     const updated = await this.repo.update(
       id,
       dto,
@@ -163,17 +179,29 @@ export class RestaurantsService {
    * Add a menu item to a restaurant.
    *
    * @description
+   * - Validates user is owner or admin
    * - Creates menu item via repository
    * - Invalidates menu cache: `restaurant:{id}:menu`
    *
    * @param restaurantId - Restaurant UUID
    * @param dto - Menu item data (name, description, price, isAvailable)
+   * @param user - Current user making the request
    * @returns Created menu item
+   * @throws ForbiddenException if user is not owner or admin
    */
   async createMenuItem(
     restaurantId: string,
     dto: CreateMenuItemDto,
+    user: User,
   ) {
+    // Check ownership
+    const restaurant = await this.repo.findById(restaurantId);
+    if (restaurant && user.role !== 'ADMIN' && restaurant.ownerId !== user.id) {
+      throw new ForbiddenException(
+        'You can only add menu items to your own restaurants',
+      );
+    }
+    
     const item = await this.repo.createMenuItem(
       restaurantId,
       dto,

@@ -84,6 +84,15 @@ export class UsersService {
   }
 
   /**
+   * Find user by ID (registered users only).
+   * @param userId - User UUID
+   * @returns User or null
+   */
+  findById(userId: string) {
+    return this.userRepo.findById(userId);
+  }
+
+  /**
    * Create new user with phone number.
    * @param phoneNumber - Phone with country code
    * @returns Created user

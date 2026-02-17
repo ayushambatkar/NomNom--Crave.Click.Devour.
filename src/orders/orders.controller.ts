@@ -39,4 +39,9 @@ export class OrdersController {
   async get(@Param('id') id: string) {
     return this.orders.buildInvoice(id);
   }
+
+  @Get('status/:id')
+  async getOrderStatus(@Param('id') orderId: string) {
+    return this.orders.getOrderStatus(orderId);
+  }
 }
