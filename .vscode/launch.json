@@ -6,7 +6,7 @@
     "configurations": [
         {
             "type": "node-terminal",
-            "name": "Start Dev",
+            "name": "API: Start Dev",
             "request": "launch",
             "command": "npm run start:dev",
             "cwd": "${workspaceFolder}",
@@ -14,7 +14,7 @@
         },
         {
             "type": "node-terminal",
-            "name": "Start Dev Debug",
+            "name": "API: Start Debug",
             "request": "launch",
             "command": "npm run start:debug",
             "cwd": "${workspaceFolder}",
@@ -22,15 +22,14 @@
         },
         {
             "type": "node-terminal",
-            "name": "Start Prod",
+            "name": "API: Start Prod",
             "request": "launch",
             "command": "npm run start:prod",
             "cwd": "${workspaceFolder}",
-            // "preLaunchTask": "npm: dev:up",
         },
         {
             "type": "node-terminal",
-            "name": "Start UAT",
+            "name": "API: Start UAT",
             "request": "launch",
             "command": "npm run start:uat",
             "cwd": "${workspaceFolder}",
@@ -38,17 +37,48 @@
         },
         {
             "type": "node-terminal",
-            "name": "Start Resources",
+            "name": "Payment Gateway: Start Dev",
+            "request": "launch",
+            "command": "npm run start:payment",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "npm: dev:up",
+        },
+        {
+            "type": "node-terminal",
+            "name": "Payment Gateway: Start Prod",
+            "request": "launch",
+            "command": "npm run start:payment:prod",
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "type": "node-terminal",
+            "name": "Docker: Start Resources",
             "request": "launch",
             "command": "npm run dev:restart",
             "cwd": "${workspaceFolder}",
         },
         {
             "type": "node-terminal",
-            "name": "Stop Resources",
+            "name": "Docker: Stop Resources",
             "request": "launch",
             "command": "npm run dev:down",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "name": "Prisma Studio: API Database",
+            "request": "launch",
+            "command": "npm run prisma:studio",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "npm: dev:up",
+        },
+        {
+            "type": "node-terminal",
+            "name": "Prisma Studio: Payment Database",
+            "request": "launch",
+            "command": "npm run prisma:studio:payment",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "npm: dev:up",
         },
         {
             "type": "node-terminal",
@@ -56,6 +86,17 @@
             "request": "launch",
             "command": "npm run format",
             "cwd": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Start All Apps (API + Payment Gateway)",
+            "configurations": [
+                "API: Start Dev",
+                "Payment Gateway: Start Dev"
+            ],
+            "preLaunchTask": "npm: dev:up",
+            "stopAll": true
         }
     ]
 }
