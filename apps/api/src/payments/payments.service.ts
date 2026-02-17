@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PaymentsRepository } from './payments.repository';
 import { RabbitMQService } from '@app/rabbitmq/rabbitmq.service';
+import { PaymentGatewayClient } from './payment-gateway.client';
 
 const PAYMENTS_QUEUE = 'payments';
 
@@ -24,30 +25,53 @@ export class PaymentsService {
   constructor(
     private paymentsRepository: PaymentsRepository,
     private mq: RabbitMQService,
+    private paymentGateway: PaymentGatewayClient,
   ) {}
 
   /**
-   * Create a new payment record for an order.
+   * Create a new payment record for an order via payment gateway.
    *
    * @description
-   * - Generates transaction ID: `txn_{orderId first 8 chars}`
-   * - Creates payment with INITIATED status
-   * - Called by OrdersService during checkout
+   * - Calls payment gateway to initiate payment
+   * - Creates local payment record with gateway payment ID
+   * - Returns payment details with payment URL
    *
    * @param orderId - The UUID of the order
-   * @param provider - Payment provider name (default: 'DUMMY')
-   * @returns Created payment record
+   * @param amount - The total amount to charge
+   * @param provider - Payment provider name (default: 'mock')
+   * @returns Payment record with payment URL
    */
   async createPayment(
     orderId: string,
-    provider = 'DUMMY',
+    amount: number,
+    provider = 'mock',
   ) {
-    const transactionId = `txn_${orderId.slice(0, 8)}`;
-    return this.paymentsRepository.create({
-      orderId,
-      provider,
-      transactionId,
-    });
+    try {
+      // Call payment gateway to initiate payment
+      const gatewayResponse = await this.paymentGateway.initiatePayment({
+        orderId,
+        amount,
+        currency: 'INR',
+      });
+
+      // Create local payment record with gateway payment ID as transaction ID
+      const payment = await this.paymentsRepository.create({
+        orderId,
+        provider: gatewayResponse.provider,
+        transactionId: gatewayResponse.paymentId,
+      });
+
+      this.logger.log(`Payment created for order ${orderId}: ${payment.id}`);
+
+      return {
+        ...payment,
+        paymentUrl: gatewayResponse.paymentUrl,
+        gatewayPaymentId: gatewayResponse.paymentId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create payment for order ${orderId}:`, error.stack);
+      throw error;
+    }
   }
 
   /**
@@ -82,97 +106,47 @@ export class PaymentsService {
   }
 
   /**
-   * Schedule the simulated payment flow for an order.
+   * Schedule the payment flow via payment gateway.
    *
-   * @description Simulates a payment gateway with timed status updates:
+   * @description Uses payment gateway's simulation endpoints:
    *
    * Timeline:
-   * - T+0s:  Payment created with INITIATED status
-   * - T+5s:  Publish `order.payment.pending` to RabbitMQ
-   * - T+15s: Publish `order.payment.success` (80%) or `order.payment.failed` (20%)
+   * - T+5s:  Simulate payment processing (gateway moves to PENDING)
+   * - T+15s: Simulate payment result (80% success, 20% failure)
    *
    * Flow:
-   * 1. Set timeout for 5s to publish pending event
-   * 2. Set timeout for 15s to randomly succeed (80%) or fail (20%)
-   * 3. Store timers in map for potential cancellation
-   * 4. If RabbitMQ unavailable, falls back to direct DB update
+   * 1. Wait 5s then call gateway's /webhook/simulate/success or /failed
+   * 2. Gateway processes payment and calls our webhook
+   * 3. Our webhook updates order status via RabbitMQ events
    *
-   * @param orderId - The UUID of the order to process
+   * @param orderId - The UUID of the order
+   * @param gatewayPaymentId - Payment ID from gateway
    */
-  schedulePaymentFlow(orderId: string) {
+  schedulePaymentFlow(orderId: string, gatewayPaymentId: string) {
     const timers: NodeJS.Timeout[] = [];
 
-    // Move to PENDING after 5s
-    timers.push(
-      setTimeout(async () => {
-        try {
-          await this.mq.publish(PAYMENTS_QUEUE, {
-            type: 'order.payment.pending',
-            orderId,
-          });
-          this.logger.log(
-            `Published payment.pending for ${orderId}`,
-          );
-        } catch (err) {
-          this.logger.warn(
-            `MQ unavailable, updating payment directly: ${err}`,
-          );
-          await this.updateStatus(
-            orderId,
-            PaymentStatus.PENDING,
-          );
-        }
-      }, 5000),
-    );
-
-    // Decide success/failure after 15s total
+    // Simulate payment after 15s (80% success rate)
     timers.push(
       setTimeout(async () => {
         const shouldFail = Math.random() < 0.2; // 20% failure rate
 
-        if (shouldFail) {
-          try {
-            await this.mq.publish(
-              PAYMENTS_QUEUE,
-              {
-                type: 'order.payment.failed',
-                orderId,
-              },
-            );
-            this.logger.log(
-              `Published payment.failed for ${orderId}`,
-            );
-          } catch (err) {
-            this.logger.warn(
-              `MQ unavailable, updating payment directly: ${err}`,
-            );
-            await this.updateStatus(
-              orderId,
-              PaymentStatus.FAILED,
-            );
+        try {
+          if (shouldFail) {
+            await this.paymentGateway.simulateFailed(gatewayPaymentId);
+            this.logger.log(`Simulated payment failure for ${orderId}`);
+          } else {
+            await this.paymentGateway.simulateSuccess(gatewayPaymentId);
+            this.logger.log(`Simulated payment success for ${orderId}`);
           }
-        } else {
-          try {
-            await this.mq.publish(
-              PAYMENTS_QUEUE,
-              {
-                type: 'order.payment.success',
-                orderId,
-              },
-            );
-            this.logger.log(
-              `Published payment.success for ${orderId}`,
-            );
-          } catch (err) {
-            this.logger.warn(
-              `MQ unavailable, updating payment directly: ${err}`,
-            );
-            await this.updateStatus(
-              orderId,
-              PaymentStatus.SUCCESS,
-            );
-          }
+        } catch (error) {
+          this.logger.error(`Failed to simulate payment: ${error.message}`);
+          // Fallback to direct update
+          await this.updateStatus(
+            orderId,
+            shouldFail ? PaymentStatus.FAILED : PaymentStatus.SUCCESS,
+          );
         }
+
         // Cleanup timers for this order
         this.paymentTimers.delete(orderId);
       }, 15000),

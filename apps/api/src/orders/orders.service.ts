@@ -110,9 +110,10 @@ export class OrdersService {
       );
     }
 
-    // Create payment record via payments service
-    await this.paymentsService.createPayment(
+    // Create payment record via payments service & payment gateway
+    const payment = await this.paymentsService.createPayment(
       order.id,
+      Number(cart.total), // Convert Decimal to number
     );
 
     await this.cartService.clear(userId);
@@ -125,9 +126,10 @@ export class OrdersService {
       'order.payment.initiated',
     );
 
-    // Schedule payment flow via payments service
+    // Schedule payment flow via payment gateway
     this.paymentsService.schedulePaymentFlow(
       order.id,
+      payment.gatewayPaymentId,
     );
 
     return this.buildInvoice(order.id);

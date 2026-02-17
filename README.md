@@ -2,21 +2,34 @@
 
 <a href="http://35.154.25.12/"> Production </a>
 
-A food delivery service prototype built using **NestJS**, **Prisma**, **PostgreSQL**, **Redis**, and **RabbitMQ**.
+A food delivery service built with **NestJS monorepo**, featuring **microservices architecture**, **RBAC**, **S2S payment gateway**, **Redis caching**, and **RabbitMQ**.
 
 ## Features
 
 - 🔐 **Phone number + OTP authentication** (hardcoded OTP: `123456` for testing)
 - 👤 **Guest login** with seamless upgrade to registered user
+- 🔑 **Role-based access control** (CUSTOMER, RESTAURANT_OWNER, ADMIN)
 - 🍽️ **Restaurants** with address, geo-coordinates, opening/closing times, handling fees, and packaging charges
+- 👥 **Restaurant ownership** - Owners manage their restaurants and menus
 - 📍 **Location-based restaurant discovery** with Haversine distance calculation
 - 🍕 **Menu items** per restaurant with availability status
 - 🛒 **Shopping cart** - one cart per user; items from one restaurant only; auto-resets on cross-restaurant add
 - 💰 **Dynamic cart totals** including subtotal, handling fee, packaging charges, delivery fee (₹10/km), and tax
 - 📦 **Orders & Checkout** with order lifecycle management
-- 💳 **Payment simulation** with status progression via RabbitMQ
+- 💳 **Payment Gateway microservice** - S2S communication, webhook notifications, ledger system
 - ⚡ **Redis caching** for restaurants, menus, and user orders
 - 🐰 **RabbitMQ** for async payment and order status updates
+- 🏗️ **Monorepo architecture** - Separate apps (API + Payment Gateway) with shared libraries
+
+---
+
+## 📚 Documentation
+
+- **[MONOREPO.md](MONOREPO.md)** - Monorepo structure, apps, shared libraries
+- **[PAYMENT_INTEGRATION.md](PAYMENT_INTEGRATION.md)** - S2S payment flow, webhooks, testing
+- **[ENVIRONMENT.md](ENVIRONMENT.md)** - Multi-environment configuration (dev/uat/prod)
+- **[CONFIG_MIGRATION.md](CONFIG_MIGRATION.md)** - Type-safe config service usage
+- **[SETUP_COMPLETE.md](SETUP_COMPLETE.md)** - Initial setup summary
 
 ---
 
@@ -28,84 +41,83 @@ flowchart TB
         APP[Mobile/Web App]
     end
 
-    subgraph API["NestJS API Server"]
+    subgraph API["API Service (Port 3000)"]
         AUTH[Auth Module]
         USERS[Users Module]
         REST[Restaurants Module]
         CART[Cart Module]
         ORDERS[Orders Module]
+        PAYMENTS[Payments Module]
+    end
+
+    subgraph PaymentGW["Payment Gateway (Port 3001)"]
+        PAY[Payment Service]
+        LEDGER[Ledger Service]
+        WEBHOOK[Webhook Service]
     end
 
     subgraph Data["Data Layer"]
-        PG[(PostgreSQL)]
-        REDIS[(Redis)]
+        PG1[(API DB<br/>PostgreSQL:5432)]
+        PG2[(Payment DB<br/>PostgreSQL:5433)]
+        REDIS[(Redis:6379)]
     end
 
     subgraph MQ["Message Queue"]
-        RMQ[RabbitMQ]
-        PQ[payments queue]
-        OQ[orders queue]
+        RMQ[RabbitMQ:5672]
     end
 
     APP -->|HTTP/REST| API
-    AUTH --> PG
+    AUTH --> PG1
     AUTH --> REDIS
-    USERS --> PG
+    USERS --> PG1
     USERS --> REDIS
-    REST --> PG
+    REST --> PG1
     REST --> REDIS
-    CART --> PG
+    CART --> PG1
     CART --> REDIS
-    ORDERS --> PG
+    ORDERS --> PG1
     ORDERS --> RMQ
-    RMQ --> PQ
-    RMQ --> OQ
+    PAYMENTS -->|S2S HTTP| PaymentGW
+    PaymentGW -->|Webhook| PAYMENTS
+    PAY --> PG2
+    LEDGER --> PG2
+    WEBHOOK --> PG2
 ```
+
+> **See [MONOREPO.md](MONOREPO.md) for detailed architecture.**
 
 ---
 
 ## Order & Payment Flow
 
+> **Note:** Payment processing now uses a dedicated Payment Gateway microservice. See [PAYMENT_INTEGRATION.md](PAYMENT_INTEGRATION.md) for detailed S2S flow.
+
 ```mermaid
 sequenceDiagram
     participant U as User
     participant API as NestJS API
-    participant DB as PostgreSQL
+    participant PG as Payment Gateway
     participant MQ as RabbitMQ
-    participant EVT as OrdersEvents
 
     U->>API: POST /orders/checkout
-    API->>DB: Create Order (PENDING)
-    API->>DB: Create Payment (INITIATED)
-    API->>DB: Snapshot cart items
-    API->>API: Clear cart
+    API->>API: Create Order (PENDING)
+    API->>PG: POST /payments/initiate
+    PG->>PG: Create Payment + Transaction
+    PG-->>API: Payment ID & URL
+    API->>API: Store gateway payment ID
     API-->>U: Return invoice
 
-    Note over API,MQ: After 5 seconds
-    API->>MQ: Publish payment.pending
-    MQ->>EVT: Consume payment.pending
-    EVT->>DB: Update Payment → PENDING
+    Note over PG: After 15 seconds (simulation)
+    PG->>PG: Process payment (80% success)
+    PG->>PG: Create ledger entries
+    PG->>API: POST /webhooks/payment
+    API->>API: Update Payment status
+    API->>MQ: Publish order.confirmed/cancelled
+    MQ->>API: Update Order status
 
-    Note over API,MQ: After 15 seconds
-    alt 80% Success
-        API->>MQ: Publish payment.success
-        MQ->>EVT: Consume payment.success
-        EVT->>DB: Update Payment → SUCCESS
-        EVT->>MQ: Publish order.confirmed
-        MQ->>EVT: Consume order.confirmed
-        EVT->>DB: Update Order → CONFIRMED
-    else 20% Failure
-        API->>MQ: Publish payment.failed
-        MQ->>EVT: Consume payment.failed
-        EVT->>DB: Update Payment → FAILED
-        EVT->>DB: Update Order → CANCELLED
-    end
-
-    Note over EVT: Every 10s lifecycle tick
+    Note over API: Every 10s lifecycle tick
     loop Order Progression
-        EVT->>DB: Query active orders
-        EVT->>MQ: Publish next status
-        EVT->>DB: CONFIRMED → ACCEPTED → PREPARING → OUT_FOR_DELIVERY → DELIVERED
+        API->>API: CONFIRMED → ACCEPTED → PREPARING → OUT_FOR_DELIVERY → DELIVERED
     end
 ```
 
@@ -411,9 +423,6 @@ Coordinates are rounded to 2 decimal places (~1km precision) for cache grouping.
 
 - Node.js 18+
 - Docker & Docker Compose
-- PostgreSQL 13+
-- Redis 7+
-- RabbitMQ 4+
 
 ### Installation
 
@@ -421,36 +430,47 @@ Coordinates are rounded to 2 decimal places (~1km precision) for cache grouping.
 # Install dependencies
 npm install
 
-# Start infrastructure (Postgres, Redis, RabbitMQ)
+# Start infrastructure (PostgreSQL x2, Redis, RabbitMQ)
 npm run dev:up
 
+# Generate Prisma clients
+npm run prisma:generate
+npm run prisma:generate:payment
+
 # Apply database migrations
-npx prisma migrate dev
+npm run db:deploy:dev
 
 # Seed sample data
 npm run db:seed
 
-# Start development server
-npm run start:dev
+# Start both applications
+npm run start:dev          # Terminal 1 - API (port 3000)
+npm run start:payment      # Terminal 2 - Payment Gateway (port 3001)
 ```
+
+> **See [MONOREPO.md](MONOREPO.md) for detailed setup and [ENVIRONMENT.md](ENVIRONMENT.md) for configuration.**
 
 ### Environment Variables
 
-Create a `.env` file:
+See `.env.example` for all variables. Key ones:
 
 ```env
-# Database
+# API Database
 DATABASE_URL="postgresql://devuser:devpassword@localhost:5432/devdb?schema=public"
+
+# Payment Gateway Database
+PAYMENT_DATABASE_URL="postgresql://paymentuser:paymentpassword@localhost:5433/paymentdb?schema=public"
+
+# Payment Integration
+PAYMENT_GATEWAY_URL="http://localhost:3001"
+API_WEBHOOK_URL="http://localhost:3000/webhooks/payment"
 
 # JWT
 JWT_SECRET="your-secret-key"
-JWT_REFRESH_SECRET="your-refresh-secret"
 JWT_EXPIRES_IN="7d"
-JWT_REFRESH_EXPIRES_IN="30d"
 
-# Redis (optional - defaults shown)
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
+# Redis
+REDIS_URL="redis://localhost:6379"
 
 # RabbitMQ
 RABBITMQ_URL="amqp://admin:admin@localhost:5672"
@@ -474,7 +494,8 @@ npm run dev:restart
 ```
 
 Services exposed:
-- **PostgreSQL**: `localhost:5432` (devuser/devpassword)
+- **API Database (PostgreSQL)**: `localhost:5432` (devuser/devpassword)
+- **Payment Database (PostgreSQL)**: `localhost:5433` (paymentuser/paymentpassword)
 - **Redis**: `localhost:6379`
 - **RabbitMQ**: `localhost:5672` (AMQP), `localhost:15672` (Management UI - admin/admin)
 
@@ -484,17 +505,20 @@ Services exposed:
 
 | Script | Description |
 |--------|-------------|
-| `npm run start:dev` | Start in watch mode |
-| `npm run build` | Build for production |
-| `npm run start:prod` | Run production build |
+| `npm run start:dev` | Start API in watch mode (port 3000) |
+| `npm run start:payment` | Start payment gateway (port 3001) |
+| `npm run build:api` | Build API for production |
+| `npm run build:payment` | Build payment gateway |
 | `npm run dev:up` | Start Docker services |
 | `npm run dev:down` | Stop Docker services |
-| `npm run db:seed` | Seed sample data (18 restaurants, 15 users) |
-| `npm run db:clear` | Clear all data |
+| `npm run db:seed` | Seed API database (18 restaurants, 15 users) |
+| `npm run db:clear` | Clear API database |
+| `npm run prisma:studio` | Open Prisma Studio for API DB |
+| `npm run prisma:studio:payment` | Open Prisma Studio for Payment DB |
 | `npm run test` | Run unit tests |
 | `npm run test:e2e` | Run e2e tests |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
+
+> **See [MONOREPO.md](MONOREPO.md) for complete command reference.**
 
 ---
 
@@ -502,12 +526,12 @@ Services exposed:
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | NestJS 11 |
+| **Architecture** | NestJS 11 Monorepo |
 | **ORM** | Prisma 6 |
-| **Database** | PostgreSQL 13 |
+| **Database** | PostgreSQL 13 (dual instances) |
 | **Cache** | Redis 8 |
 | **Message Queue** | RabbitMQ 4 |
-| **Auth** | JWT (passport-jwt) |
+| **Auth** | JWT (passport-jwt) + RBAC |
 | **Validation** | class-validator, class-transformer |
 | **Language** | TypeScript 5 |
 

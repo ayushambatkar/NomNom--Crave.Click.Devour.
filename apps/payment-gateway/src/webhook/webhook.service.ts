@@ -1,10 +1,54 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PaymentService } from '../payment/payment.service';
 import { PaymentStatus } from '../../../../node_modules/.prisma/payment-gateway-client';
 
 @Injectable()
 export class WebhookService {
-  constructor(private paymentService: PaymentService) {}
+  private readonly logger = new Logger('WebhookService');
+  private readonly apiWebhookUrl: string;
+
+  constructor(private paymentService: PaymentService) {
+    // Get API webhook URL from environment or use default
+    this.apiWebhookUrl = process.env.API_WEBHOOK_URL || 'http://localhost:3000/webhooks/payment';
+  }
+
+  /**
+   * Notify API of payment status change
+   */
+  private async notifyAPI(payment: any) {
+    try {
+      const payload = {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        status: payment.status,
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        provider: payment.provider,
+        timestamp: new Date().toISOString(),
+      };
+
+      this.logger.log(`Notifying API of payment status: ${payment.status} for order ${payment.orderId}`);
+
+      const response = await fetch(this.apiWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`API webhook failed: ${response.status} - ${error}`);
+      }
+
+      const result = await response.json();
+      this.logger.log(`API webhook response: ${JSON.stringify(result)}`);
+    } catch (error) {
+      this.logger.error(`Failed to notify API: ${error.message}`, error.stack);
+      // Don't throw - payment status should still be updated even if webhook fails
+    }
+  }
 
   /**
    * Handle payment webhook from payment provider
@@ -28,12 +72,15 @@ export class WebhookService {
    * Simulate successful payment (for testing)
    */
   async simulatePaymentSuccess(paymentId: string) {
-    await this.paymentService.updatePaymentStatus(
+    const payment = await this.paymentService.updatePaymentStatus(
       paymentId,
       PaymentStatus.SUCCESS,
       `mock_provider_${Date.now()}`,
       { simulatedAt: new Date(), method: 'MOCK' },
     );
+
+    // Notify API of payment success
+    await this.notifyAPI(payment);
 
     return { success: true, message: 'Payment marked as successful' };
   }
@@ -42,12 +89,15 @@ export class WebhookService {
    * Simulate failed payment (for testing)
    */
   async simulatePaymentFailure(paymentId: string, reason?: string) {
-    await this.paymentService.updatePaymentStatus(
+    const payment = await this.paymentService.updatePaymentStatus(
       paymentId,
       PaymentStatus.FAILED,
       undefined,
       { simulatedAt: new Date(), failureReason: reason || 'Simulated failure' },
     );
+
+    // Notify API of payment failure
+    await this.notifyAPI(payment);
 
     return { success: true, message: 'Payment marked as failed' };
   }
