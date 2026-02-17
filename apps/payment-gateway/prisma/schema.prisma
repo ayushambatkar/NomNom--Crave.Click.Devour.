@@ -1,0 +1,79 @@
+// Payment Gateway Database Schema
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/payment-gateway-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PAYMENT_DATABASE_URL")
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  REFUND
+  FEE
+}
+
+enum LedgerEntryType {
+  CREDIT
+  DEBIT
+}
+
+model Payment {
+  id            String          @id @default(uuid()) @db.Uuid
+  orderId       String          @unique
+  amount        Decimal         @db.Decimal(10, 2)
+  currency      String          @default("INR")
+  status        PaymentStatus   @default(INITIATED)
+  provider      String?         // "razorpay", "stripe", "mock", etc.
+  providerId    String?         // External payment ID from gateway
+  providerData  Json?           // Store webhook/response data
+  failureReason String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  transactions  Transaction[]
+  ledgerEntries LedgerEntry[]
+}
+
+model Transaction {
+  id            String          @id @default(uuid()) @db.Uuid
+  paymentId     String          @db.Uuid
+  payment       Payment         @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  type          TransactionType
+  amount        Decimal         @db.Decimal(10, 2)
+  status        String          // SUCCESS, FAILED, PENDING
+  description   String?
+  metadata      Json?           // Additional transaction data
+  createdAt     DateTime        @default(now())
+  
+  @@index([paymentId])
+}
+
+model LedgerEntry {
+  id          String          @id @default(uuid()) @db.Uuid
+  paymentId   String          @db.Uuid
+  payment     Payment         @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  entityType  String          // "RESTAURANT", "PLATFORM", "DELIVERY_PARTNER"
+  entityId    String          // Restaurant ID, Platform ID, etc.
+  amount      Decimal         @db.Decimal(10, 2)
+  type        LedgerEntryType
+  description String?
+  metadata    Json?           // Additional ledger data
+  createdAt   DateTime        @default(now())
+  
+  @@index([entityType, entityId])
+  @@index([paymentId])
+  @@index([createdAt])
+}

@@ -10,28 +10,34 @@
     "dev:down": "docker compose down",
     "dev:restart": "npm run dev:down && npm run dev:up",
     "dev:rm": "docker compose rm dev-db dev-redis -s -f",
-    "db:seed": "dotenv -e .env.development -- node -r ts-node/register prisma/seed.ts",
-    "db:seed:uat": "dotenv -e .env.uat -- node -r ts-node/register prisma/seed.ts",
-    "db:seed:prod": "dotenv -e .env.production -- node -r ts-node/register prisma/seed.ts",
-    "db:clear": "dotenv -e .env.development -- node -r ts-node/register prisma/clear_db.ts",
-    "db:clear:uat": "dotenv -e .env.uat -- node -r ts-node/register prisma/clear_db.ts",
-    "db:clear:prod": "dotenv -e .env.production -- node -r ts-node/register prisma/clear_db.ts",
-    "db:deploy:dev": "dotenv -e .env.development -- prisma migrate deploy",
-    "db:deploy:uat": "dotenv -e .env.uat -- prisma migrate deploy",
-    "db:deploy:prod": "dotenv -e .env.production -- prisma migrate deploy",
+    "db:seed": "dotenv -e .env.development -- node -r ts-node/register apps/api/prisma/seed.ts",
+    "db:seed:uat": "dotenv -e .env.uat -- node -r ts-node/register apps/api/prisma/seed.ts",
+    "db:seed:prod": "dotenv -e .env.production -- node -r ts-node/register apps/api/prisma/seed.ts",
+    "db:clear": "dotenv -e .env.development -- node -r ts-node/register apps/api/prisma/clear_db.ts",
+    "db:clear:uat": "dotenv -e .env.uat -- node -r ts-node/register apps/api/prisma/clear_db.ts",
+    "db:clear:prod": "dotenv -e .env.production -- node -r ts-node/register apps/api/prisma/clear_db.ts",
+    "db:deploy:dev": "dotenv -e .env.development -- prisma migrate deploy --schema=apps/api/prisma/schema.prisma",
+    "db:deploy:uat": "dotenv -e .env.uat -- prisma migrate deploy --schema=apps/api/prisma/schema.prisma",
+    "db:deploy:prod": "dotenv -e .env.production -- prisma migrate deploy --schema=apps/api/prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema=apps/api/prisma/schema.prisma",
+    "prisma:generate:payment": "prisma generate --schema=apps/payment-gateway/prisma/schema.prisma",
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "build:api": "nest build api",
+    "build:payment": "nest build payment-gateway",
+    "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "cross-env NODE_ENV=development nest start --watch",
-    "start:uat": "cross-env NODE_ENV=uat nest start --watch",
-    "start:debug": "cross-env NODE_ENV=development nest start --debug --watch",
-    "start:prod": "cross-env NODE_ENV=production node dist/src/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "start:dev": "cross-env NODE_ENV=development nest start api --watch",
+    "start:payment": "cross-env NODE_ENV=development nest start payment-gateway --watch",
+    "start:uat": "cross-env NODE_ENV=uat nest start api --watch",
+    "start:debug": "cross-env NODE_ENV=development nest start api --debug --watch",
+    "start:prod": "cross-env NODE_ENV=production node dist/apps/api/main",
+    "start:payment:prod": "cross-env NODE_ENV=production node dist/apps/payment-gateway/main",
+    "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./apps/api/test/jest-e2e.json"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -88,7 +94,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -96,7 +102,16 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/apps/",
+      "<rootDir>/libs/"
+    ],
+    "moduleNameMapper": {
+      "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+      "^@app/rabbitmq(|/.*)$": "<rootDir>/libs/rabbitmq/src/$1",
+      "^@app/redis(|/.*)$": "<rootDir>/libs/redis/src/$1"
+    }
   }
 }
