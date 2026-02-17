@@ -21,6 +21,8 @@
     "db:deploy:prod": "dotenv -e .env.production -- prisma migrate deploy --schema=apps/api/prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema=apps/api/prisma/schema.prisma",
     "prisma:generate:payment": "prisma generate --schema=apps/payment-gateway/prisma/schema.prisma",
+    "prisma:studio": "dotenv -e .env.development -- prisma studio --schema=apps/api/prisma/schema.prisma",
+    "prisma:studio:payment": "dotenv -e .env.development -- prisma studio --schema=apps/payment-gateway/prisma/schema.prisma --port 5556",
     "build": "nest build",
     "build:api": "nest build api",
     "build:payment": "nest build payment-gateway",
