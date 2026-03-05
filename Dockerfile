@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+RUN cd apps/api && npm ci
 RUN npx prisma generate
 RUN npm run build
 
