@@ -1,6 +1,6 @@
 # NomNom -- Crave. Click. Devour.
 
-<a href="http://35.154.25.12/"> Production </a>
+<a href="https://nomnom-crave-click-devour.onrender.com/"> Production </a>
 
 A food delivery service built with **NestJS monorepo**, featuring **microservices architecture**, **RBAC**, **S2S payment gateway**, **Redis caching**, and **RabbitMQ**.
 
