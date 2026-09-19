@@ -7,6 +7,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
   RefreshDto,
@@ -20,12 +26,16 @@ import type { User } from '@prisma/client';
 import { UserEntity } from 'apps/api/src/users/user.entity';
 
 @Controller({ path: 'auth', version: '1' })
+@ApiTags('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtGuard)
   @Post('request-otp')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Request an OTP' })
+  @ApiBody({ type: RequestOtpDto })
   requestOtp(
     @SnakeBody(RequestOtpDto) dto: RequestOtpDto,
   ) {
@@ -37,6 +47,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('resend-otp')
   @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resend an OTP' })
+  @ApiBody({ type: RequestOtpDto })
   resendOtp(
     @SnakeBody(RequestOtpDto) dto: RequestOtpDto,
   ) {
@@ -49,6 +62,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('verify-otp')
   @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify an OTP and upgrade the guest session' })
+  @ApiBody({ type: VerifyOtpDto })
   verifyOtp(
     @GetUser() user: any,
     @SnakeBody(VerifyOtpDto) dto: VerifyOtpDto,
@@ -62,6 +78,7 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Get('guest')
+  @ApiOperation({ summary: 'Create a guest session' })
   guestLogin() {
     return this.authService.guestLogin();
   }
@@ -72,6 +89,8 @@ export class AuthController {
    */
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
+  @ApiOperation({ summary: 'Refresh the access and refresh tokens' })
+  @ApiBody({ type: RefreshDto })
   refresh(
     @SnakeBody(RefreshDto) dto: RefreshDto,
   ) {

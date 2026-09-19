@@ -9,6 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { RestaurantsService } from './restaurants.service';
@@ -24,6 +32,8 @@ import { GetUser, Roles } from 'apps/api/src/auth/decorator';
 import { PrismaService } from 'apps/api/src/prisma/prisma.service';
 
 @UseGuards(JwtGuard)
+@ApiBearerAuth()
+@ApiTags('restaurants')
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(
@@ -34,6 +44,8 @@ export class RestaurantsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.RESTAURANT_OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a restaurant' })
+  @ApiBody({ type: CreateRestaurantDto })
   create(
     @GetUser() user: User,
     @SnakeBody(CreateRestaurantDto)
@@ -43,12 +55,17 @@ export class RestaurantsController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'List restaurants' })
   listRestaurants(@GetUser() user: User) {
     return this.service.list(user);
   }
 
   // Define static route before dynamic ':id' to avoid matching 'nearby' as an id
   @Get('nearby')
+  @ApiOperation({ summary: 'Find restaurants near a location' })
+  @ApiQuery({ name: 'lat', type: Number, required: true })
+  @ApiQuery({ name: 'lng', type: Number, required: true })
+  @ApiQuery({ name: 'radiusKm', type: Number, required: false })
   getNearbyRestaurants(
     @Query() query: NearbyQueryDto,
   ) {
@@ -61,6 +78,8 @@ export class RestaurantsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get restaurant details' })
+  @ApiParam({ name: 'id', format: 'uuid' })
   getRestaurantDetails(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
@@ -70,6 +89,9 @@ export class RestaurantsController {
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.RESTAURANT_OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update restaurant details' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: UpdateRestaurantDto })
   updateRestaurantMeta(
     @GetUser() user: User,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -82,6 +104,9 @@ export class RestaurantsController {
   @Post('/menu-items/:restaurantId')
   @UseGuards(RolesGuard)
   @Roles(UserRole.RESTAURANT_OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a menu item' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiBody({ type: CreateMenuItemDto })
   createMenuItem(
     @GetUser() user: User,
     @Param('restaurantId') restaurantId: string,
@@ -96,6 +121,8 @@ export class RestaurantsController {
   }
 
   @Get('/menu-items/:id')
+  @ApiOperation({ summary: 'List a restaurant menu' })
+  @ApiParam({ name: 'id', format: 'uuid' })
   listMenu(
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {

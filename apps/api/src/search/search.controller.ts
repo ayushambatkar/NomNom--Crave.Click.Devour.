@@ -4,11 +4,19 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto';
 import { JwtGuard } from 'apps/api/src/auth/guard';
 
 @UseGuards(JwtGuard)
+@ApiBearerAuth()
+@ApiTags('search')
 @Controller('search')
 export class SearchController {
   constructor(
@@ -24,6 +32,12 @@ export class SearchController {
    * Returns: { restaurants: [...], menu: [...] }
    */
   @Get()
+  @ApiOperation({ summary: 'Search restaurants and menu items' })
+  @ApiQuery({ name: 'query', type: String, required: true })
+  @ApiQuery({ name: 'type', type: String, required: false })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'limit', type: Number, required: false })
+  @ApiQuery({ name: 'filters', type: Object, required: false })
   search(@Query() dto: SearchQueryDto) {
     const { type, query, page, limit, filters } =
       dto;
@@ -47,6 +61,7 @@ export class SearchController {
   }
 
   @Get('types')
+  @ApiOperation({ summary: 'List available search types' })
   getAvailableTypes() {
     return {
       types:

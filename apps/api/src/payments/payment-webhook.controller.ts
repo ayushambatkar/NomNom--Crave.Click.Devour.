@@ -1,4 +1,9 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { PaymentStatus } from '@prisma/client';
 
@@ -13,6 +18,7 @@ interface WebhookPayload {
 }
 
 @Controller('webhooks/payment')
+@ApiTags('webhooks')
 export class PaymentWebhookController {
   private readonly logger = new Logger('PaymentWebhookController');
 
@@ -22,6 +28,22 @@ export class PaymentWebhookController {
    * Receive payment status updates from payment gateway
    */
   @Post()
+  @ApiOperation({ summary: 'Receive a payment status update' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['paymentId', 'orderId', 'status', 'amount', 'currency', 'provider', 'timestamp'],
+      properties: {
+        paymentId: { type: 'string' },
+        orderId: { type: 'string' },
+        status: { type: 'string', enum: ['INITIATED', 'PENDING', 'SUCCESS', 'FAILED'] },
+        amount: { type: 'number' },
+        currency: { type: 'string' },
+        provider: { type: 'string' },
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
   async handlePaymentWebhook(@Body() payload: WebhookPayload) {
     this.logger.log(
       `Received payment webhook: ${payload.status} for order ${payload.orderId}`,

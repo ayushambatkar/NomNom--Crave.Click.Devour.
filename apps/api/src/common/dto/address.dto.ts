@@ -7,15 +7,19 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddressDto {
+  @ApiProperty()
   @IsString() line1: string;
-  @IsString() @IsOptional() line2?: string;
-  @IsString() @IsOptional() landmark?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() line2?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() landmark?: string;
+  @ApiProperty()
   @IsString() city: string;
-  @IsString() @IsOptional() state?: string;
-  @IsString() @IsOptional() postalCode?: string;
-  @IsString() @IsOptional() country?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() state?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() postalCode?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() country?: string;
+  @ApiPropertyOptional({ minimum: -90, maximum: 90 })
   @IsNumber()
   @Min(-90)
   @Max(90)

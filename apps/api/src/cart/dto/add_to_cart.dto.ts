@@ -5,8 +5,10 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddToCartDto {
+  @ApiProperty({ format: 'uuid' })
   @IsUUID()
   @IsString()
   @IsNotEmpty()
@@ -14,5 +16,6 @@ export class AddToCartDto {
 
   @IsNumber()
   @IsOptional()
+  @ApiPropertyOptional({ example: 1, minimum: 1 })
   quantity: number;
 }

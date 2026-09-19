@@ -6,6 +6,7 @@ import { SnakeCaseInterceptor } from './common/snake-case.interceptor';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { VersioningType } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@app/common/config/config.service';
 
 async function bootstrap() {
@@ -38,6 +39,18 @@ async function bootstrap() {
     type: VersioningType.URI,
     defaultVersion: '1',
   });
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('NomNom API')
+    .setDescription('API documentation for the NomNom application')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(
+    app,
+    swaggerConfig,
+  );
+  SwaggerModule.setup('api/docs', app, swaggerDocument);
 
   await app.listen(port);
   console.log(
